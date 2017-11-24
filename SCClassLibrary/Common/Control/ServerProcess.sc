@@ -56,7 +56,7 @@ ServerProcess {
 	// locked dict with all config info from server process.
 	var configFromProcess;
 
-	var <bootStartedTime = 0;
+	var <bootStartedTime = 0, <bootRoutine;
 
 	// conditions that trigger ServerBoot, ServerQuit,
 	// doWhenBooted routines etc
@@ -139,7 +139,6 @@ ServerProcess {
 	}
 
 	boot { |onComplete, timeout = 5, onFailure, recover = false|
-		var remainingTimeout, bootRout;
 		bootStartedTime = thisThread.seconds;
 
 		if(this.canBoot.not) {
@@ -168,11 +167,9 @@ ServerProcess {
 
 		this.postAt("starting boot routine:\n", false);
 
-		bootRout = Routine {
-			// if there is a server at my address, re-adopt or reboot it
-			var cond1 = Condition.new, cond2 = Condition.new;
+		bootRoutine = Routine {
+			var cond1 = Condition.new;
 			var recovered = false;
-			var origAlivePeriod = this.aliveThreadPeriod;
 
 			this.postAt("pinging server process first ... ", true);
 
@@ -187,7 +184,7 @@ ServerProcess {
 				} {
 					this.postAt("found running server process, rebooting.");
 					this.reboot;
-					bootRout.stop;
+					bootRoutine.stop;
 				};
 			}, {
 
@@ -212,6 +209,26 @@ ServerProcess {
 			cond1.hang(timeout);
 			this.postAt("cond1 unhung after process boot or recover.", false);
 
+			this.bootStage2(onComplete, timeout, onFailure, recover);
+
+		}.play(AppClock)
+	}
+
+	// Server:remote uses this - startWatching, notified, etc
+	bootStage2 { |onComplete, timeout = 5, onFailure, recover = false, isRemote = true|
+		var remainingTimeout, cond2 = Condition.new;
+		var origAlivePeriod = this.aliveThreadPeriod;
+
+		// support remote servers coming in here:
+		if (isRemote == true) {
+			processRunning = hasBooted = true;
+			bootStartedTime = thisThread.seconds;
+		};
+
+		this.postAt("bootStage2 begins.", false);
+
+
+		forkIfNeeded {
 			if (hasBooted) {
 				//	app has booted OK, so continue
 				//  TODO: copy boot state from options ...
@@ -220,8 +237,6 @@ ServerProcess {
 				// ( wait faster ;-)
 				aliveThreadPeriod = 0.1;
 				this.startWatching(0.1);
-				// TODO - TEMP FIX; REMOVE and do proper check
-				server.changed(\serverRunning);
 
 				fork {
 					0.02.wait;
@@ -233,7 +248,8 @@ ServerProcess {
 			} {
 				// failed to boot, so exit
 				this.prBootFailed(onFailure);
-				bootRout.stop;
+				thisThread.stop;
+				bootRoutine.stop;
 			};
 
 			remainingTimeout = (timeout - this.timeSinceBoot).max(0.6).round(0.01);
@@ -245,7 +261,7 @@ ServerProcess {
 			if (isAlive and: notified) {
 				this.postAt("running and notified - starting setup", false);
 				this.state_(\isSettingUp);
-				this.prRunBootSetup;
+				this.prRunBootSetup(isRemote);
 
 				this.postAt("running ServerTree setup ... ", false);
 
@@ -259,7 +275,7 @@ ServerProcess {
 				isReadyCondition.signal
 			} {
 				this.prBootFailed(onFailure);
-				bootRout.stop;
+				bootRoutine.stop;
 			};
 
 		}.play(AppClock)
@@ -298,11 +314,13 @@ ServerProcess {
 	}
 
 	///////////////
-	prRunBootSetup {
+	prRunBootSetup { |isRemote = false|
 		forkIfNeeded( {
 			this.postAt("runBootSetup ...", false);
 			if(server.dumpMode != 0) { server.sendMsg(\dumpOSC, server.dumpMode) };
-			server.connectSharedMemory;
+			if (isRemote.not) {
+				server.connectSharedMemory;
+			};
 
 			ServerBoot.run(server);
 			server.sync;
@@ -350,8 +368,8 @@ ServerProcess {
 	}
 
 	startWatching { | delay = 0.5 |
-
-		this.postAt("% with delay %.\n".postf(thisMethod.name, delay), false);
+		delay = delay ? 0.1;
+		this.postAt("%: % with delay %.\n".postf(server, thisMethod.name, delay), false);
 
 		this.addWatcher;
 
@@ -391,7 +409,12 @@ ServerProcess {
 		aliveThread = nil;
 	}
 
-	resumeThread { this.startWatching }
+	resumeThread {
+		aliveThread !? {
+			this.stopAliveThread;
+			this.startAliveThread;
+		}
+	}
 
 	serverRunning { ^hasBooted and: notified }
 
