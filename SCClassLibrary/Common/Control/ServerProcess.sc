@@ -458,10 +458,12 @@ ServerProcess {
 				notified = false;
 				this.postAt("notify is off now.", false)
 			} {
-				notified = true;
+				// open notified to allow setting clientID:
+				notified = false;
 				// on registering scsynth sends back a free clientID and its maxLogins,
 				// which usually adjust the server object's settings:
 				server.prHandleClientLoginInfoFromServer(newClientID, newMaxLogins);
+				notified = true;
 			};
 
 		}, '/done', server.addr, argTemplate:['/notify', nil]).oneShot;

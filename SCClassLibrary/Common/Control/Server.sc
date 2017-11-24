@@ -289,9 +289,6 @@ Server {
 			.postf(this, thisMethod.name, newClientID, newMaxLogins);
 		};
 
-		// turn notified off to allow setting clientID
-		process.notified = false;
-
 		// only set maxLogins if not internal server
 		if (inProcess.not) {
 			if (newMaxLogins.notNil) {
@@ -317,8 +314,6 @@ Server {
 			.postf(this, newClientID);
 		};
 		this.clientID = newClientID;
-		process.notified = true; // and lock again
-
 	}
 
 	prHandleNotifyFailString {|failString, msg|
