@@ -18,10 +18,8 @@ Server {
 
 	var <syncThread, <syncTasks;
 	var <window, <>scopeWindow, <emacsbuf;
-	var <volume, <recorder, <statusWatcher;
+	var <volume, <recorder, <process;
 	var <pid, serverInterface;
-
-	var <process;
 
 	*initClass {
 		Class.initClassTree(ServerOptions);
@@ -74,8 +72,7 @@ Server {
 		// set name to get readable posts from clientID set
 		name = argName.asSymbol;
 
-		// make statusWatcher before clientID, so .serverRunning works
-		statusWatcher = ServerStatusWatcher(server: this);
+		// make statusWatcher/process before clientID
 		process = ServerProcess(this);
 
 		// go thru setter to test validity
@@ -132,7 +129,6 @@ Server {
 	// ServerTree and used code goes here:
 	prRunTree {
 		this.state_(\isSettingUp);
-		statusWatcher.serverBooting = false;
 		if (Server.postingBootInfo) { "%.%\n".postf(this, thisMethod.name) };
 
 		forkIfNeeded( {
@@ -294,7 +290,7 @@ Server {
 		};
 
 		// turn notified off to allow setting clientID
-		statusWatcher.notified = false;
+		process.notified = false;
 
 		// only set maxLogins if not internal server
 		if (inProcess.not) {
@@ -321,7 +317,7 @@ Server {
 			.postf(this, newClientID);
 		};
 		this.clientID = newClientID;
-		statusWatcher.notified = true; // and lock again
+		process.notified = true; // and lock again
 
 	}
 
@@ -333,14 +329,14 @@ Server {
 		case
 		{ failString.asString.contains("already registered") } {
 			"% - already registered with clientID %.\n".postf(this, msg[3]);
-			statusWatcher.notified = true;
+			process.notified = true;
 		} { failString.asString.contains("not registered") } {
 			// unregister when already not registered:
 			"% - not registered.\n".postf(this);
-			statusWatcher.notified = false;
+			process.notified = false;
 		} { failString.asString.contains("too many users") } {
 			"% - could not register, too many users.\n".postf(this);
-			statusWatcher.notified = false;
+			process.notified = false;
 		} {
 			// throw error if unknown failure
 			Error(
@@ -538,7 +534,7 @@ Server {
 
 	ping { |n = 1, wait = 0.1, func|
 		var result = 0, pingFunc;
-		if(statusWatcher.serverRunning.not) { "server not running".postln; ^this };
+		if(process.serverRunning.not) { "server not running".postln; ^this };
 		pingFunc = {
 			Routine.run {
 				var t, dt;
@@ -633,12 +629,41 @@ Server {
 	isReady { ^process.isReady }
 	isQuitting { ^process.isQitting }
 
-	// startAliveThread { | delay=0.0 | statusWatcher.startAliveThread(delay) }
-	// stopAliveThread { statusWatcher.stopAliveThread }
-	// aliveThreadIsRunning { ^statusWatcher.aliveThread.isPlaying }
-	// aliveThreadPeriod_ { |val| statusWatcher.aliveThreadPeriod_(val) }
-	// aliveThreadPeriod { |val| ^statusWatcher.aliveThreadPeriod }
+	///// backwards compatibility
+	// statusWatcher:
+	statusWatcher { ^process }
+	startAliveThread { | delay=0.0 | process.startWatching(delay) }
+	stopAliveThread { process.stopWatching }
+	aliveThreadIsRunning { ^process.aliveThread.isPlaying }
+	aliveThreadPeriod_ { |val| process.aliveThreadPeriod_(val) }
+	aliveThreadPeriod { |val| ^process.aliveThreadPeriod }
 
+	// these were semi-duplicates already,
+	// and may be deprecated at some point
+	remoteControlled_ { |bool| bootAndQuitDisabled = bool }
+	remoteControlled { ^bootAndQuitDisabled }
+	sendQuit_ { |bool| bootAndQuitDisabled = bool.not }
+	sendQuit { ^bootAndQuitDisabled.not }
+
+	userSpecifiedClientID {
+		thisMethod.deprecated;
+		"userSpecifiedClientID is obsolete: clientID can now be changed while server is off, and is locked when server has booted.".postln;
+	}
+
+	// these are absorbed into the ServerProcess:boot method now
+	bootInit {
+		thisMethod.deprecated;
+		"bootInit happens in Server:boot now, so you need not call it explicitly."
+		.postln;
+	}
+	bootServerApp {
+		thisMethod.deprecated;
+		"bootServerApp happens in Server:boot now, so you need not call it explicitly."
+		.postln;
+	}
+
+
+	//  SharedMemory
 	disconnectSharedMemory {
 		if(this.hasShmInterface) {
 			"server '%' disconnected shared memory interface\n".postf(name);

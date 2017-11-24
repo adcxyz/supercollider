@@ -23,7 +23,7 @@ s.reboot;
 s.waitForBoot { Env.perc.test };
 
 
-// test for missing scsynth:
+// test for missing scsynth works:
 Server.program = "noValidProgramName";
 s.boot; // fails very quickly
 
@@ -98,6 +98,26 @@ ServerProcess {
 
 	storeArgs { ^[server.name] }
 	printOn { |stream| this.storeOn(stream) }
+
+	////// backwards compatibility:
+	/*
+	SortedList[ notified_,  serverBooting_ ]
+	*/
+	addStatusWatcher { this.addWatcher }
+	stopStatusWatcher { this.stopWatching }
+	startAliveThread { |delay|this.startWatching(delay) }
+	stopAliveThread { this.stopWatching }
+	notified_ { |bool|
+		"*** calling % from outside serverProcess should never be necessary.".postf(thisMethod);
+		notified = bool;
+	}
+
+	serverBooting { ^this.isBooting }
+	serverBooting_ { |bool|
+		"*** calling % from outside serverProcess should never be necessary.\n"
+		"// The serverBooting variable is gone now. Maybe try:\n" .postf(thisMethod);
+		"<server>.process.state_(\isBooting);".postln;
+	}
 
 	////////////// booting /////////////
 
