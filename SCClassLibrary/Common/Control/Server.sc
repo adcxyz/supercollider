@@ -3,7 +3,7 @@ Server {
 	classvar <>local, <>internal, <default;
 	classvar <>named, <>all, <>program, <>sync_s = true;
 	classvar <>nodeAllocClass, <>bufferAllocClass, <>busAllocClass;
-	classvar <>postingBootInfo = false;
+	classvar <tracing = false;
 
 	var <name, <addr, <clientID;
 	var <isLocal, <inProcess, <>bootAndQuitDisabled = false;
@@ -20,6 +20,10 @@ Server {
 	var <window, <>scopeWindow, <emacsbuf;
 	var <volume, <recorder, <process;
 	var <pid, serverInterface;
+
+	*trace { |bool=true| tracing = bool }
+	*postingBootInfo { ^tracing }
+	*postingBootInfo_ { |bool| tracing = bool }
 
 	*initClass {
 		Class.initClassTree(ServerOptions);
@@ -61,7 +65,7 @@ Server {
 	*remote { |name, addr, options, clientID|
 		var result = this.new(name, addr, options, clientID);
 		result.bootAndQuitDisabled = true;
-		result.process.startWatching;
+		result.process.bootStage2(isRemote: true);
 		^result;
 	}
 
@@ -679,7 +683,7 @@ Server {
 	hasShmInterface { ^serverInterface.notNil }
 
 	*resumeThreads {
-		all.do { |server| server.statusWatcher.resumeThread }
+		all.do { |server| server.process.resumeThread }
 	}
 
 	boot { | startAliveThread = true, recover = false, onFailure, onComplete, timeout = 5 |
