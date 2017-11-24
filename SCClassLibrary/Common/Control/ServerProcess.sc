@@ -1,37 +1,62 @@
-// ServerProcess handles boot, quit, and running status of a server process.
-// status code copied and adapted from ServerStatusWatcher
-// boot and quit copied and refactored from Server
+/***********  ServerProcess **************
 
-// Server now focuses on 'content': allocation, synths, controls.
+ServerProcess handles boot, quit, and running status of a server process.
+Status code copied and adapted from ServerStatusWatcher,
+boot and quit copied and refactored from Server.
 
-/* TODO:
-+ Tests for every if-branch in boot method
-+ add remote method
+Server class now focuses only on 'content':
+allocation, synths, controls, etc.
 
-
-// These already run!
+//////// WORKING ALREADY : ///////////
+// These tests all run:
 TestServer_boot.run;
 TestServer_clientID.run;
 TestServer_clientID_booted.run;
 
-s.boot; // superfast! sometimes 0.5 - 1 secs, compared to 1.3 - 2 secs earlier.
+// * ca. 40% faster boot
+s.boot;
+s.quit;
 
+// * boot has onComplete and onFailure arguments:
 s.boot(onComplete: { "READY".postln; }, onFailure: { "failed".postln; }, timeout: 5);
 
-s.quit;
 s.reboot;
+s.quit;
 s.waitForBoot { Env.perc.test };
 
+// * remote server works:
+// boot scsynth by hand
+Server.killAll;
+unixCmd( (Server.program + s.options.asOptionsString).postcs);
+r = Server.remote(\remote);
 
-// test for missing scsynth works:
+
+// * test for missing scsynth works:
 Server.program = "noValidProgramName";
+s.quit;
 s.boot; // fails very quickly
+
+
+//////// TODO: /////////////////
+
+// * complains
+s.quit.boot;
+
+// * UnitTests for every if-branch in boot method!
+
+// * fix remote method
+r = Server.remote(\remote);
+
+// * Volume sendSynthDef actions accumulates with every boot
+(see post window after a few boots)
+
+// * this should run into timeout I think
+Server.program = "sleep 10";
+s.quit;
+s.boot(timeout: 5); // fails very quickly
 
 // currently turned off:
 s.doWhenBooted;
-
-///--- not working yet ---///
-r = Server.remote(\remote);
 
 */
 
@@ -82,7 +107,7 @@ ServerProcess {
 	state_ { |newState|
 		if (states.includes(newState)) {
 			state = newState;
-			"%: process state is now %.\n".postf(server.name.cs, newState.cs);
+			this.postAt("process state is now %.\n".format(newState.cs), false);
 		} {
 			warn(
 				"%:% - % is not a valid process state."
@@ -108,7 +133,8 @@ ServerProcess {
 	startAliveThread { |delay|this.startWatching(delay) }
 	stopAliveThread { this.stopWatching }
 	notified_ { |bool|
-		"*** calling % from outside serverProcess should never be necessary.".postf(thisMethod);
+		"*** calling % from outside serverProcess should never be necessary."
+		.postf(thisMethod);
 		notified = bool;
 	}
 
@@ -142,10 +168,11 @@ ServerProcess {
 		bootStartedTime = thisThread.seconds;
 
 		if(this.canBoot.not) {
-			"% You cannot boot a remote or bootAndQuitDisabled server.\n".postf(this);
+			"% You cannot boot a remote or bootAndQuitDisabled server.\n".postf(server);
 			^this
 		};
 
+		// recover: if there is a server at my address, re-adopt or reboot it
 		// prepare for reboot if unresponsive - is this ok?
 		if(recover.not and: { this.unresponsive }) {
 			this.postAt("% unresponsive, rebooting ...");
@@ -153,15 +180,15 @@ ServerProcess {
 		};
 		// early exits
 		if(this.isReady) {
-			"% already running".format(server).postln;
+			this.postAt("already running");
 			if (onComplete.notNil) {
-				" - running onComplete.".postln;
+				this.postAt(" --- running onComplete.");
 				onComplete.value(server);
 			};
 			^this
 		};
 
-		if(this.isBooting) { "% already booting".format(this).postln; ^this };
+		if(this.isBooting) { "% already booting".format(server).postln; ^this };
 
 		this.state = \isBooting;
 
@@ -171,7 +198,7 @@ ServerProcess {
 			var cond1 = Condition.new;
 			var recovered = false;
 
-			this.postAt("pinging server process first ... ", true);
+			this.postAt("pinging server process first ... ", false);
 
 			server.prPingApp({
 				// we find a server process already running at addr!
@@ -188,20 +215,19 @@ ServerProcess {
 				};
 			}, {
 
-				this.postAt("try to boot server process.", true);
+				this.postAt("try to boot server process.", false);
 
 				// this is the default case
 				this.bootServerApp({
-					this.postAt("within bootServerApp...");
-					0.1.wait; // wait needed for failed pid to go away first
+					0.1.wait; // little wait needed for failed pid to go away first
 					processRunning = pid.pidRunning;
 					if (processRunning) {
 						hasBooted = true;
-						this.postAt("unhang because app has booted");
+						this.postAt("unhang because app has booted", false);
 						cond1.unhang;
 					} {
 						this.prBootFailed(onFailure);
-						bootRout.stop;
+						bootRoutine.stop;
 					}
 				})
 			}, 0.25);
@@ -240,20 +266,23 @@ ServerProcess {
 
 				fork {
 					0.02.wait;
-					while { (isAlive and: notified).not } { 0.1.wait };
+					while { (isAlive and: notified).not } {
+						0.1.wait
+					};
 					this.postAt(" booted and notified, so unhang cond2!", false);
 					this.aliveThreadPeriod = origAlivePeriod;
 					cond2.unhang;
 				};
 			} {
-				// failed to boot, so exit
+				"*** ".post;
+				this.postAt("% : boot failed in bootStage2.");
 				this.prBootFailed(onFailure);
 				thisThread.stop;
 				bootRoutine.stop;
 			};
 
 			remainingTimeout = (timeout - this.timeSinceBoot).max(0.6).round(0.01);
-			this.postAt("cond2.hang(timeout: %).".format(remainingTimeout));
+			this.postAt("cond2.hang(timeout: %).".format(remainingTimeout), false);
 			cond2.hang(remainingTimeout);
 
 			this.postAt("cond2 unhung ...", false);
@@ -267,13 +296,13 @@ ServerProcess {
 
 				server.prRunTree;
 				this.state_(\isReady);
-				this.postAt("<- total boot time.");
 				this.postAt("running onComplete.", false);
 				onComplete.value(this);
 				this.postAt("onComplete done.", false);
-				"*** server % is ready!".postf(server);
+				"*** server % is ready after % secs!\n".postf(server, this.timeSinceBoot);
 				isReadyCondition.signal
 			} {
+				"FAILED AT END OF BOOTSTAGE2".postln;
 				this.prBootFailed(onFailure);
 				bootRoutine.stop;
 			};
@@ -358,6 +387,7 @@ ServerProcess {
 				#cmd, one, numUGens, numSynths, numGroups, numSynthDefs,
 				avgCPU, peakCPU, sampleRate, actualSampleRate = msg;
 				{
+					this.postAt("watcher isAlive.", false);
 					this.updateRunningState(true);
 					server.changed(\counts);
 				}.defer;
@@ -380,7 +410,7 @@ ServerProcess {
 				loop {
 					isAlive = false;
 					if (Server.postingBootInfo) {
-						"% . sendStatusMsg...\n".postf(server);
+						"% ... sendStatusMsg ...\n".postf(server);
 					};
 					server.sendStatusMsg;
 					aliveThreadPeriod.wait;
@@ -435,6 +465,7 @@ ServerProcess {
 	}
 
 	updateRunningState { | running |
+		this.postAt("% : %".format(thisMethod, running), false);
 		if(server.addr.hasBundle) {
 			{ server.changed(\bundling) }.defer;
 		} {
