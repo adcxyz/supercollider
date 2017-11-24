@@ -141,7 +141,7 @@ TestServer_boot : UnitTest {
 		var s = Server(\test_bootSequence, NetAddr("localhost", 57115));
 		var numBootFuncs = ServerBoot.objects !? { ServerBoot.objects[s].size } ? 0;
 		var numTreeFuncs = ServerTree.objects !? { ServerTree.objects[s].size } ? 0;
-		var expectedList = List[ '1_Bt', '2_Bt', '3_tr', '4_Tr', '5_Tr', '6_su1', '7_su2' ];
+		var expectedList = List[ '1_Bt', '2_Bt', '3_tr', '4_Tr', '5_Tr' ];
 
 		// list of function names to check
 		a = List[];
@@ -155,8 +155,6 @@ TestServer_boot : UnitTest {
 
 		s.quit;
 		a = List[];
-		s.addSetupItem  { 0.1.wait; s.post; a.add('6_su1'.postln); };
-		s.addSetupItem { 0.1.wait; s.post; a.add('7_su2'.postln); };
 
 		s.boot;
 		while { s.state != \isReady } { 0.2.wait };
