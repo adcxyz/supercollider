@@ -1,33 +1,62 @@
+// ServerProcess handles boot, quit, and running status of a server process.
+// status code copied and adapted from ServerStatusWatcher
+// boot and quit copied and refactored from Server
+
+// Server now focuses on 'content': allocation, synths, controls.
+
+/* TODO:
++ Tests for every if-branch in boot method
++ add remote method
+
+
+// These already run!
+TestServer_boot.run;
+TestServer_clientID.run;
+TestServer_clientID_booted.run;
+
+s.boot; // superfast! sometimes 0.5 - 1 secs, compared to 1.3 - 2 secs earlier.
+s.quit;
+s.reboot;
+s.waitForBoot { Env.perc.test };
+
+// currently turned off:
+s.doWhenBooted;
+
+///--- not working yet ---///
+r = Server.remote(\remote);
+
+*/
+
 ServerProcess {
 
 	classvar states = #[\isOff, \isBooting, \isSettingUp, \isReady, \isQuitting];
 
-	var server;
+	var <server;
 	var <>bootAndQuitDisabled = false;
 
 	var <state = \isOff, <processRunning = false, <pid;
-	// locked dict with all config info from server process.
-	var configFromProcess;
-	// maxLogins from booted scsynth, could also be in config
-	var <maxLoginsFromProcess;
-	var <bootStartedTime = 0;
-
-	// conditions that trigger ServerBoot, ServerQuit ...
-	var <hasBootedCondition, <hasQuitCondition, readyCondition;
-
-	// watcher
-	var <isAlive = false, <aliveThread, <>aliveThreadPeriod = 0.7, <watcher;
-	var <>pingsBeforeDead, <reallyDeadCount = 0, <bootNotifyFirst = true;
+	var <hasBooted = false, <isAlive = false, <unresponsive = false;
 	var <notified = false, <notify = true;
-
 
 	// reported state from process, status messages
 	var <numUGens=0, <numSynths=0, <numGroups=0, <numSynthDefs=0;
 	var <avgCPU, <peakCPU;
 	var <sampleRate, <actualSampleRate;
 
-	// get rid of these state vars when finished:
-	var <hasBooted = false, <unresponsive = false;
+	// maxLogins from booted scsynth, could also be in config
+	var <maxLoginsFromProcess;
+	// locked dict with all config info from server process.
+	var configFromProcess;
+
+	var <bootStartedTime = 0;
+
+	// conditions that trigger ServerBoot, ServerQuit,
+	// doWhenBooted routines etc
+	var <hasBootedCondition, <hasQuitCondition, isReadyCondition;
+
+	// watcher
+	var <aliveThread, <>aliveThreadPeriod = 0.7, <watcher;
+	var <>pingsBeforeDead, <reallyDeadCount = 0, <bootNotifyFirst = true;
 
 	*new { |server|
 		^super.newCopyArgs(server).init
@@ -38,6 +67,7 @@ ServerProcess {
 		pingsBeforeDead = server.options.pingsBeforeConsideredDead;
 		hasBootedCondition = Condition({ this.pidRunning });
 		hasQuitCondition = Condition({ this.hasQuit });
+		isReadyCondition = Condition({ this.isReady });
 	}
 
 	// process state
@@ -80,9 +110,10 @@ ServerProcess {
 		}
 	}
 
-	boot { |onComplete, timeout = 10, onFailure, recover = false|
+	boot { |onComplete, timeout = 5, onFailure, recover = false|
 		var remainingTimeout;
 		bootStartedTime = thisThread.seconds;
+
 		if(this.canBoot.not) {
 			"% You cannot boot a remote or bootAndQuitDisabled server.\n".postf(this);
 			^this
@@ -161,7 +192,6 @@ ServerProcess {
 				aliveThreadPeriod = 0.1;
 				this.startWatching(0.1);
 				// TODO - TEMP FIX; REMOVE and do proper check
-				server.statusWatcher.serverRunning = true;
 				server.changed(\serverRunning);
 
 				fork {
@@ -192,8 +222,14 @@ ServerProcess {
 				this.postAt("running onComplete.", false);
 				onComplete.value(this);
 				this.postAt("onComplete done.", false);
+				"*** server % is ready!".postf(server);
+				isReadyCondition.signal
 			} {
-				this.postAt("*** BOOT FAILED OR TIMED OUT *** running onFailure.");
+				"****** ".post;
+				this.postAt(
+					"\n****** BOOT FAILED OR TIMED OUT!"
+					"\n****** running onFailure."
+				);
 				onFailure.value(server);
 			};
 
@@ -240,9 +276,19 @@ ServerProcess {
 		}, AppClock)
 	}
 
+	ping { |func, onFailure, timeout = 3|
+		var id, resp, task, now = thisThread.seconds;
+		func = func ? { "% ping returned in % secs.\n".postf(server, thisThread.seconds - now) };
+		id = func.hash;
+		resp = OSCFunc({ |msg| if(msg[1] == id, { func.value; task.stop }) },
+			"/synced",
+			server.addr);
+		task = timeout !? { fork { timeout.wait; resp.free;  onFailure.value } };
+		server.addr.sendMsg("/sync", id);
+	}
+
 	fillConfig {
 		// copyAllOptions to config so we know what the state was when booting...
-
 	}
 
 	/////// status reports from process ///////
@@ -291,6 +337,7 @@ ServerProcess {
 
 	stopWatching {
 		aliveThread.stop;
+		aliveThread = nil;
 		this.disableWatcher;
 	}
 
@@ -429,14 +476,18 @@ ServerProcess {
 			"'/quit' sent\n".postln;
 		};
 
+		processRunning = hasBooted = notified = isAlive = false;
+		unresponsive = false;
+		pid = nil;
+
 		this.state_(\isOff);
 		server.statusWatcher.serverRunning_(false);
 		server.changed(\serverRunning);
 
-		pid = nil;
 	}
 
 	quitWatcher { |onComplete, onFailure, watchShutDown = true|
+
 		if(watchShutDown) {
 			this.watchQuit(onComplete, onFailure)
 		} {
