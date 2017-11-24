@@ -15,9 +15,17 @@ TestServer_clientID.run;
 TestServer_clientID_booted.run;
 
 s.boot; // superfast! sometimes 0.5 - 1 secs, compared to 1.3 - 2 secs earlier.
+
+s.boot(onComplete: { "READY".postln; }, onFailure: { "failed".postln; }, timeout: 5);
+
 s.quit;
 s.reboot;
 s.waitForBoot { Env.perc.test };
+
+
+// test for missing scsynth:
+Server.program = "noValidProgramName";
+s.boot; // fails very quickly
 
 // currently turned off:
 s.doWhenBooted;
@@ -111,7 +119,7 @@ ServerProcess {
 	}
 
 	boot { |onComplete, timeout = 5, onFailure, recover = false|
-		var remainingTimeout;
+		var remainingTimeout, bootRout;
 		bootStartedTime = thisThread.seconds;
 
 		if(this.canBoot.not) {
@@ -140,7 +148,7 @@ ServerProcess {
 
 		this.postAt("starting boot routine:\n", false);
 
-		Routine {
+		bootRout = Routine {
 			// if there is a server at my address, re-adopt or reboot it
 			var cond1 = Condition.new, cond2 = Condition.new;
 			var recovered = false;
@@ -159,7 +167,7 @@ ServerProcess {
 				} {
 					this.postAt("found running server process, rebooting.");
 					this.reboot;
-					thisThread.stop
+					bootRout.stop;
 				};
 			}, {
 
@@ -167,16 +175,17 @@ ServerProcess {
 
 				// this is the default case
 				this.bootServerApp({
-					this.postAt("after bootServerApp...");
+					this.postAt("within bootServerApp...");
 					0.1.wait; // wait needed for failed pid to go away first
 					processRunning = pid.pidRunning;
 					if (processRunning) {
 						hasBooted = true;
 						this.postAt("unhang because app has booted");
 						cond1.unhang;
+					} {
+						this.prBootFailed(onFailure);
+						bootRout.stop;
 					}
-				}, {
-
 				})
 			}, 0.25);
 
@@ -184,10 +193,10 @@ ServerProcess {
 			this.postAt("cond1 unhung after process boot or recover.", false);
 
 			if (hasBooted) {
-
 				//	app has booted OK, so continue
-				// copy boot state from options
+				//  TODO: copy boot state from options ...
 				this.fillConfig;
+
 				// ( wait faster ;-)
 				aliveThreadPeriod = 0.1;
 				this.startWatching(0.1);
@@ -201,6 +210,10 @@ ServerProcess {
 					this.aliveThreadPeriod = origAlivePeriod;
 					cond2.unhang;
 				};
+			} {
+				// failed to boot, so exit
+				this.prBootFailed(onFailure);
+				bootRout.stop;
 			};
 
 			remainingTimeout = (timeout - this.timeSinceBoot).max(0.6).round(0.01);
@@ -225,15 +238,20 @@ ServerProcess {
 				"*** server % is ready!".postf(server);
 				isReadyCondition.signal
 			} {
-				"****** ".post;
-				this.postAt(
-					"\n****** BOOT FAILED OR TIMED OUT!"
-					"\n****** running onFailure."
-				);
-				onFailure.value(server);
+				this.prBootFailed(onFailure);
+				bootRout.stop;
 			};
 
 		}.play(AppClock)
+	}
+
+	prBootFailed { |onFailure|
+		"****** ".post;
+		this.postAt(
+			"\n****** BOOT FAILED OR TIMED OUT!"
+			"\n****** running onFailure."
+		);
+		onFailure.value(server);
 	}
 
 	bootServerApp { |onComplete|
