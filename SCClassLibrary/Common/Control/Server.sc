@@ -690,7 +690,7 @@ Server {
 		process.boot(onComplete, timeout, onFailure, recover)
 	}
 
-	reboot { |funcWhenOff, onFailure| // func is evaluated when server is off
+	reboot { |funcWhenOff, onFailure, onComplete, timeout = 5| // func is evaluated when server is off
 		if (process.canBoot.not) {
 			"can't reboot a remote server".postln;
 			^this
@@ -703,7 +703,7 @@ Server {
 			}, onFailure);
 		} {
 			funcWhenOff.value(this);
-			this.boot(onFailure: onFailure)
+			this.boot(onFailure: onFailure, onComplete: onComplete, timeout: timeout )
 		}
 	}
 

@@ -1,68 +1,7 @@
-/***********  ServerProcess **************
-
-ServerProcess handles boot, quit, and running status of a server process.
-Status code copied and adapted from ServerStatusWatcher,
-boot and quit copied and refactored from Server.
-
-Server class now focuses only on 'content':
-allocation, synths, controls, etc.
-
-//////// WORKING ALREADY : ///////////
-// These tests all run:
-TestServer_boot.run;
-TestServer_clientID.run;
-TestServer_clientID_booted.run;
-
-// * ca. 40% faster boot
-s.boot;
-s.quit;
-
-// * boot has onComplete and onFailure arguments:
-s.boot(onComplete: { "READY".postln; }, onFailure: { "failed".postln; }, timeout: 5);
-
-s.reboot;
-s.quit;
-s.waitForBoot { Env.perc.test };
-
-// * remote server works:
-// boot scsynth by hand
-Server.killAll;
-unixCmd( (Server.program + s.options.asOptionsString).postcs);
-r = Server.remote(\remote);
-
-
-// * test for missing scsynth works:
-Server.program = "noValidProgramName";
-s.quit;
-s.boot; // fails very quickly
-
-
-//////// TODO: /////////////////
-
-// * complains
-s.quit.boot;
-
-// * UnitTests for every if-branch in boot method!
-
-// * fix remote method
-r = Server.remote(\remote);
-
-// * Volume sendSynthDef actions accumulates with every boot
-(see post window after a few boots)
-
-// * this should run into timeout I think
-Server.program = "sleep 10";
-s.quit;
-s.boot(timeout: 5); // fails very quickly
-
-// currently turned off:
-s.doWhenBooted;
-
-*/
 
 ServerProcess {
 
-	classvar states = #[\isOff, \isBooting, \isSettingUp, \isReady, \isQuitting];
+	classvar <states = #[\isOff, \isBooting, \isSettingUp, \isReady, \isQuitting];
 
 	var <server;
 	var <>bootAndQuitDisabled = false;
@@ -85,7 +24,8 @@ ServerProcess {
 
 	// conditions that trigger ServerBoot, ServerQuit,
 	// doWhenBooted routines etc
-	var <hasBootedCondition, <hasQuitCondition, <isReadyCondition;
+	var <startedBootingCondition, <hasBootedCondition,
+	<hasQuitCondition, <isReadyCondition;
 
 	// watcher
 	var <aliveThread, <>aliveThreadPeriod = 0.7, <watcher;
@@ -98,6 +38,7 @@ ServerProcess {
 	init {
 		configFromProcess = ();
 		pingsBeforeDead = server.options.pingsBeforeConsideredDead;
+		startedBootingCondition = Condition({ this.isBooting });
 		hasBootedCondition = Condition({ this.hasBooted });
 		hasQuitCondition = Condition({ this.state == \isOff });
 		isReadyCondition = Condition({ this.state == \isReady });
@@ -116,10 +57,11 @@ ServerProcess {
 		}
 	}
 
+	isOff { ^state == \isOff }
 	isBooting { ^state == \isBooting }
 	isReady { ^state == \isReady }
 	isSettingUp { ^state == \isSettingUp }
-	isQitting { ^state == \isQuitting }
+	isQuitting { ^state == \isQuitting }
 
 	storeArgs { ^[server.name] }
 	printOn { |stream| this.storeOn(stream) }
@@ -191,7 +133,7 @@ ServerProcess {
 		if(this.isBooting) { "% already booting".format(server).postln; ^this };
 
 		this.state = \isBooting;
-
+		startedBootingCondition.signal;
 		this.postAt("starting boot routine:\n", false);
 
 		bootRoutine = Routine {
@@ -200,6 +142,7 @@ ServerProcess {
 
 			this.postAt("pinging server process first ... ", false);
 
+			// this could also be flattened into the routine with cond1 ...
 			server.prPingApp({
 				// we find a server process already running at addr!
 				// this is the rare exception, so post when it happens
@@ -210,7 +153,7 @@ ServerProcess {
 					cond1.unhang;
 				} {
 					this.postAt("found running server process, rebooting.");
-					this.reboot;
+					server.reboot;
 					bootRoutine.stop;
 				};
 			}, {
@@ -595,21 +538,33 @@ ServerProcess {
 	}
 
 
-	// move back to Server
-	doWhenBooted { |onComplete, limit = 100, onFailure|
+	// because countdown code was commented out,
+	// the actual default limit was not 100 * 0.2 (waittime), but inf!
+	// I put limit = inf to keep the same (wrong) behavior as before,
+	// but write it correctly now.
+
+	// limit is is steps of 0.2 waittime units for compatibility
+	doWhenBooted { |onComplete, limit = inf, onFailure|
 		var timeout = limit * 0.2, routine;
 
 		if (server.isReady) {
 			^forkIfNeeded({ onComplete.value(server) })
 		};
 
-		{
-			if (server.isReady.not) { onFailure.value(server) }
-		}.defer(timeout);
 
 		routine = Routine {
+			// wait for boot start first
+			startedBootingCondition.wait;
+			// then set timeout timer from when boot begins
+			{
+				if (server.isReady.not) {
+					"% doWhenBooted timed out - running onFailure\n".postf(server);
+					onFailure.value(server);
+					isReadyCondition.remove(routine);
+				}
+			}.defer(timeout);
+			// now wait for ready
 			isReadyCondition.wait;
-			isReadyCondition.remove(routine);
 			onComplete.value(server);
 		};
 		routine.play(AppClock);

@@ -38,6 +38,8 @@ Condition {
 		});
 	}
 
+	clear { waitingThreads = nil }
+
 	remove { |thread| waitingThreads.remove(thread) }
 
 }
