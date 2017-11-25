@@ -146,10 +146,10 @@ Server {
 	}
 
 	doWhenBooted { |onComplete, limit = 100, onFailure|
-		"*** % (-: % - this method intentionally left blank ;-)\n"
-		"... just needs proper condition handling.".postf(thisMethod);
+		// "*** % (-: % - this method intentionally left blank ;-)\n"
+		// "... just needs proper condition handling.".postf(thisMethod);
 
-		// ^statusWatcher.doWhenBooted(onComplete, limit, onFailure);
+		^process.doWhenBooted(onComplete, limit, onFailure);
 	}
 
 	/* id allocators */

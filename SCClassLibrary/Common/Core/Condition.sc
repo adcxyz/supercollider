@@ -37,6 +37,9 @@ Condition {
 			thread.clock.sched(0, thread);
 		});
 	}
+
+	remove { |thread| waitingThreads.remove(thread) }
+
 }
 
 FlowVar {

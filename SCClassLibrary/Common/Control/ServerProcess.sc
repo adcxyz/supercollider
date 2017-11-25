@@ -85,7 +85,7 @@ ServerProcess {
 
 	// conditions that trigger ServerBoot, ServerQuit,
 	// doWhenBooted routines etc
-	var <hasBootedCondition, <hasQuitCondition, isReadyCondition;
+	var <hasBootedCondition, <hasQuitCondition, <isReadyCondition;
 
 	// watcher
 	var <aliveThread, <>aliveThreadPeriod = 0.7, <watcher;
@@ -98,9 +98,9 @@ ServerProcess {
 	init {
 		configFromProcess = ();
 		pingsBeforeDead = server.options.pingsBeforeConsideredDead;
-		hasBootedCondition = Condition({ this.pidRunning });
-		hasQuitCondition = Condition({ this.hasQuit });
-		isReadyCondition = Condition({ this.isReady });
+		hasBootedCondition = Condition({ this.hasBooted });
+		hasQuitCondition = Condition({ this.state == \isOff });
+		isReadyCondition = Condition({ this.state == \isReady });
 	}
 
 	// process state
@@ -577,6 +577,7 @@ ServerProcess {
 		this.state_(\isOff);
 		server.statusWatcher.serverRunning_(false);
 		server.changed(\serverRunning);
+		hasQuitCondition.signal;
 
 	}
 
@@ -596,35 +597,23 @@ ServerProcess {
 
 	// move back to Server
 	doWhenBooted { |onComplete, limit = 100, onFailure|
-		var mBootNotifyFirst = bootNotifyFirst, postError = true;
-		bootNotifyFirst = false;
+		var timeout = limit * 0.2, routine;
 
 		if (server.isReady) {
 			^forkIfNeeded({ onComplete.value(server) })
 		};
 
-		^Routine {
-			while {
-				this.isReady.not
-				and: { (limit = limit - 1) > 0 }
-			} {
-				0.2.wait;
-			};
+		{
+			if (server.isReady.not) { onFailure.value(server) }
+		}.defer(timeout);
 
-			if(this.isReady.not, {
-				if(onFailure.notNil) {
-					postError = (onFailure.value(server) == false);
-				};
-				if(postError) {
-					"Server '%' on failed to start. You may need to kill all servers".format(server.name).error;
-				};
-				server.changed(\serverRunning);
-			}, {
-				server.sync;
-				onComplete.value;
-			});
-
-		}.play(AppClock)
+		routine = Routine {
+			isReadyCondition.wait;
+			isReadyCondition.remove(routine);
+			onComplete.value(server);
+		};
+		routine.play(AppClock);
+		^routine
 	}
 
 
