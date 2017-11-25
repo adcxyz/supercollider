@@ -1,0 +1,289 @@
+TITLE:: ServerProcess
+summary:: object that handles booting, quitting and running status of a server
+categories:: Control
+related:: Classes/Server, Guides/ClientVsServer
+
+DESCRIPTION::
+ServerProcess handles boot, quit, and running status of a server process.
+Its sstatus code is copied and adapted from ServerStatusWatcher,
+and the boot and quit copied and refactored from Server.
+
+This allows the Server class to focus on 'content': allocation, synths, controls, etc.
+
+Working tests while developing this class:
+
+code::
+// These unit tests all run:
+
+TestServer_boot.run;
+TestServer_clientID.run;
+TestServer_clientID_booted.run;
+
+// on macOS, average boot time is now 40% faster
+s.boot;
+s.quit;
+
+// * in addition to startAliveThread, recover and onFailure,
+// boot now has 2 more arguments - onComplete and timeout:
+s.boot(onComplete: { "READY".postln; }, onFailure: { "failed".postln; }, timeout: 5);
+
+// standard methods all work
+s.quit;
+s.reboot;
+// reboot also gets onComplete and timeout:
+s.reboot({ "quit worked".postln }, onComplete: { "... and rebooted.".postln });
+
+s.waitForBoot { Env.perc.test };
+
+s.quit;
+
+// multiple doWhenBooted actions now start in order:
+
+s.quit;
+
+s.doWhenBooted { "AAA".postln };
+s.doWhenBooted { "BBB".postln };
+
+s.boot;
+
+// currently, waitForBoot happens first,
+// then doWhenBooted in order;
+// I think a single waitForBoot first is clearer than
+// treating it as yet another doWhenBooted.
+// no backwards compat issue here - order was random before ;-)
+s.waitForBoot { "WFB".postln  };
+
+
+
+// * test for missing program file:
+z = Server.program;
+Server.program = "noValidProgramName";
+s.quit;
+s.boot; // fails very quickly
+Server.program = z;
+s.boot;
+
+//////// TODO: /////////////////
+
+// * remote server semi-works - debug ...
+// boot scsynth by hand
+Server.killAll;
+unixCmd( (Server.program + s.options.asOptionsString).postcs);
+r = Server.remote(\remote);
+
+// * complains the first time, then runs ...
+s.quit.boot;
+
+// * UnitTests for every if-branch in boot method!
+
+// * Volume sendSynthDef actions accumulates with every boot
+// (see post window after a few boots):
+Volume:sendSynthDef
+Volume:sendSynthDef
+Volume:sendSynthDef
+
+// this should loop and does not...
+f = { s.reboot(onComplete: { n = (n - 1).postln; if (n > 0) { 0.5.wait; f.value } }) };
+n = 5; f.value;
+
+// * this should run into timeout I think
+Server.program = "sleep 10";
+s.quit;
+s.boot(timeout: 5); // but it fails very quickly
+::
+
+CLASSMETHODS::
+
+METHOD::states
+names of all legal states the server process can be in:
+code:: [\isOff, \isBooting, \isSettingUp, \isReady, \isQuitting] ::
+
+METHOD:: new
+create a new serverProcess object for server
+
+INSTANCEMETHODS::
+
+
+METHOD:: server
+the server object that owns the running server process (scsynth or supernova)
+
+METHOD:: bootAndQuitDisabled
+get and set a flag whether the server process can be booted or quit.
+This is false for remote servers.
+
+METHOD:: inProcess
+bool whether server is internal or not
+METHOD:: maxLoginsFromProcess
+the maximum number of logins the process is configured for.
+
+METHOD:: isLocal
+bool whether the process runs or will run on the local machine.
+
+
+METHOD:: configAt
+argument:: key
+METHOD:: fillConfig
+config will be the static configuration obtained from the server process. This is not implemented yet.
+
+subsection:: State, modes and conditions
+METHOD:: state
+argument:: newState
+get and set current state; must be one of code:: ServerProcess.states ::.
+
+METHOD:: isOff
+shortcut to test for state isOff
+METHOD:: isBooting
+shortcut to test for state isBooting
+METHOD:: isSettingUp
+shortcut to test for state isSettingUp
+METHOD:: isQuitting
+shortcut to test for state isQuitting
+METHOD:: isReady
+shortcut to test for state isReady
+
+METHOD:: serverBooting
+METHOD:: serverRunning
+METHOD:: unresponsive
+
+METHOD:: canBoot
+METHOD:: isAlive
+METHOD:: hasBooted
+
+METHOD:: pid
+METHOD:: processRunning
+
+note::
+The four conditions below change when the boot process reaches their stage. this allows letting routines wait until the proper condition is reached.
+code::
+s.quit;
+Routine {
+	var name = "Routine A";
+	"% waiting for booting to start ...\n".postf(name);
+	s.process.startedBootingCondition.wait;
+	"% boot started, waiting for hasBooted ...\n".postf(name);
+	s.process.hasBootedCondition.wait;
+	"% booted, waiting for server ready ...\n".postf(name);
+	s.process.isReadyCondition.wait;
+	"% READY! now waiting for server quit ...\n".postf(name);
+	s.process.hasQuitCondition.wait;
+	"% ends, quit done.\n".postf(name);
+}.play;
+
+s.boot;
+
+
+::
+::
+METHOD:: startedBootingCondition
+gets signalled when booting has started
+METHOD:: hasBootedCondition
+gets signalled when process has booted
+METHOD:: isReadyCondition
+gets signalled when serverProcess is set up and ready
+METHOD:: hasQuitCondition
+gets signalled when process has quit
+
+subsection:: Running server process info:
+METHOD:: actualSampleRate, sampleRate, peakCPU, avgCPU
+METHOD:: numUGens, numGroups, numSynths, numSynthDefs
+
+subsection:: Watching the running process
+METHOD:: startWatching, startAliveThread
+argument:: delay
+METHOD:: watcher
+METHOD:: aliveThread
+METHOD:: aliveThreadPeriod
+
+METHOD:: notified
+METHOD:: notify
+
+METHOD:: disableWatcher
+
+METHOD:: addWatcher, addStatusWatcher
+METHOD:: stopWatching, stopAliveThread
+resumeThread, freeWatcher
+
+METHOD:: stop, stopStatusWatcher
+
+METHOD:: sendNotifyRequest
+argument:: flag
+
+METHOD:: pingsBeforeDead
+METHOD:: reallyDeadCount
+
+METHOD:: updateRunningState
+argument:: running
+
+subsection:: Booting methods
+
+METHOD:: boot
+argument:: onComplete
+argument:: timeout
+argument:: onFailure
+argument:: recover
+
+METHOD:: doWhenBooted
+argument:: onComplete
+argument:: limit
+argument:: onFailure
+
+METHOD:: bootStage2
+argument:: onComplete
+argument:: timeout
+argument:: onFailure
+argument:: recover
+argument:: isRemote
+
+METHOD:: bootServerApp
+argument:: onComplete
+
+METHOD:: prRunBootSetup
+argument:: isRemote
+
+METHOD:: prBootFailed
+argument:: onFailure
+
+METHOD:: bootRoutine
+
+private:: init
+
+subsection:: Helper methods
+METHOD:: timeSinceBoot
+METHOD:: bootStartedTime
+METHOD:: postAt
+argument:: str
+argument:: always
+
+METHOD:: storeArgs
+METHOD:: printOn
+argument:: stream
+
+METHOD:: ping
+argument:: func
+argument:: onFailure
+argument:: timeout
+
+METHOD:: bootNotifyFirst
+
+subsection:: Quitting
+METHOD:: quit
+argument:: onComplete
+argument:: onFailure
+argument:: watchShutDown
+
+METHOD:: watchQuit
+argument:: onComplete
+argument:: onFailure
+
+METHOD:: quitWatcher
+argument:: onComplete
+argument:: onFailure
+argument:: watchShutDown
+
+
+
+EXAMPLES::
+
+code::
+_some_example_code_
+::
