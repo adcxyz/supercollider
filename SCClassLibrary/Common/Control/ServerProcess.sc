@@ -20,7 +20,7 @@ ServerProcess {
 	// locked dict with all config info from server process.
 	var configFromProcess;
 
-	var <bootStartedTime = 0, <bootRoutine;
+	var <bootStartedTime = 0, <bootRoutine, <>useAbsoluteTime = true;
 
 	// conditions that trigger ServerBoot, ServerQuit,
 	// doWhenBooted routines etc
@@ -98,7 +98,11 @@ ServerProcess {
 	pidRunning { ^pid.notNil and: { pid.pidRunning } }
 
 	// measure time for all boot steps:
-	timeSinceBoot { ^(thisThread.seconds - bootStartedTime).round(0.0001) }
+	getTime {
+		^if (useAbsoluteTime) { Main.elapsedTime } { thisThread.seconds }
+	}
+
+	timeSinceBoot { ^(this.getTime - bootStartedTime).round(0.0001) }
 
 	postAt { |str="", always = true|
 		var timeStr = this.timeSinceBoot.asString.keep(6);
@@ -108,7 +112,7 @@ ServerProcess {
 	}
 
 	boot { |onComplete, timeout = 5, onFailure, recover = false|
-		bootStartedTime = thisThread.seconds;
+		bootStartedTime = this.getTime;
 
 		if(this.canBoot.not) {
 			"% You cannot boot a remote or bootAndQuitDisabled server.\n".postf(server);
@@ -192,7 +196,7 @@ ServerProcess {
 		// support remote servers coming in here:
 		if (isRemote == true) {
 			processRunning = hasBooted = true;
-			bootStartedTime = thisThread.seconds;
+			bootStartedTime = this.getTime;
 		};
 
 		this.postAt("bootStage2 begins.", false);
@@ -306,8 +310,8 @@ ServerProcess {
 	}
 
 	ping { |func, onFailure, timeout = 3|
-		var id, resp, task, now = thisThread.seconds;
-		func = func ? { "% ping returned in % secs.\n".postf(server, thisThread.seconds - now) };
+		var id, resp, task, now = this.getTime;
+		func = func ? { "% ping returned in % secs.\n".postf(server, this.getTime - now) };
 		id = func.hash;
 		resp = OSCFunc({ |msg| if(msg[1] == id, { func.value; task.stop }) },
 			"/synced",
