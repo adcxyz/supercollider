@@ -95,6 +95,7 @@ ServerProcess {
 	isLocal { ^server.addr.isLocal }
 	inProcess { ^server.addr.addr == 0 }
 	canBoot { ^bootAndQuitDisabled.not and: { this.isLocal } }
+	pidRunning { ^pid.notNil and: { pid.pidRunning } }
 
 	// measure time for all boot steps:
 	timeSinceBoot { ^(thisThread.seconds - bootStartedTime).round(0.0001) }

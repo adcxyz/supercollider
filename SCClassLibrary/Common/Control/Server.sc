@@ -19,7 +19,7 @@ Server {
 	var <syncThread, <syncTasks;
 	var <window, <>scopeWindow, <emacsbuf;
 	var <volume, <recorder, <process;
-	var <pid, serverInterface;
+	var serverInterface;
 
 	*trace { |bool=true| tracing = bool }
 	*postingBootInfo { ^tracing }
@@ -119,6 +119,7 @@ Server {
 
 	state { ^process.state }
 	state_ { |newState| process.state_(newState) }
+	pid { ^process.pid }
 
 	initTree {
 		if (Server.postingBootInfo) { "% .%\n".postf(this, thisMethod.name) };
