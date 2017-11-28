@@ -700,7 +700,7 @@ Server {
 		if(process.hasBooted and: { process.unresponsive.not }) {
 			process.quit({
 				funcWhenOff.value(this);
-				defer { this.boot }
+				defer { this.boot(onFailure: onFailure, onComplete: onComplete, timeout: timeout) }
 			}, onFailure);
 		} {
 			funcWhenOff.value(this);

@@ -35,8 +35,6 @@ s.reboot({ "quit worked".postln }, onComplete: { "... and rebooted.".postln });
 
 s.waitForBoot { Env.perc.test };
 
-s.quit;
-
 // multiple doWhenBooted actions now start in order:
 
 s.quit;
@@ -46,13 +44,20 @@ s.doWhenBooted { "BBB".postln };
 
 s.boot;
 
+// can even chain quit.boot:
+s.quit.boot;
+
+
 // currently, waitForBoot happens first,
 // then doWhenBooted in order;
 // I think a single waitForBoot first is clearer than
 // treating it as yet another doWhenBooted.
 // no backwards compat issue here - order was random before ;-)
+(
+s.doWhenBooted { "AAA".postln };
+s.doWhenBooted { "BBB".postln };
 s.waitForBoot { "WFB".postln  };
-
+)
 
 
 // * test for missing program file:
@@ -69,24 +74,18 @@ s.boot;
 // boot scsynth by hand
 Server.killAll;
 unixCmd( (Server.program + s.options.asOptionsString).postcs);
+// finding the process works
+s.prPingApp({ "yo".postln });
+// but this fails - something still wrong
 r = Server.remote(\remote);
-
-// * complains the first time, then runs ...
-s.quit.boot;
 
 // * UnitTests for every if-branch in boot method!
 
-// * Volume sendSynthDef actions accumulates with every boot
-// (see post window after a few boots):
-Volume:sendSynthDef
-Volume:sendSynthDef
-Volume:sendSynthDef
-
-// this should loop and does not...
+// this should loop 5 times
 f = { s.reboot(onComplete: { n = (n - 1).postln; if (n > 0) { 0.5.wait; f.value } }) };
 n = 5; f.value;
 
-// * this should run into timeout I think
+// * this should run into timeout I think(?)
 Server.program = "sleep 10";
 s.quit;
 s.boot(timeout: 5); // but it fails very quickly

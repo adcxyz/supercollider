@@ -277,6 +277,8 @@ ServerProcess {
 	}
 
 	prBootFailed { |onFailure|
+		hasBooted = false;
+		this.state_(\isOff);
 		"****** ".post;
 		this.postAt(
 			"\n****** BOOT FAILED OR TIMED OUT!"
