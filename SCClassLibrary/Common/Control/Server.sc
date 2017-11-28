@@ -122,7 +122,7 @@ Server {
 	pid { ^process.pid }
 
 	initTree {
-		if (Server.postingBootInfo) { "% .%\n".postf(this, thisMethod.name) };
+		if (Server.tracing) { "% .%\n".postf(this, thisMethod.name) };
 		forkIfNeeded({
 			this.sendDefaultGroups;
 			tree.value(this);
@@ -134,10 +134,10 @@ Server {
 	// ServerTree and used code goes here:
 	prRunTree {
 		this.state_(\isSettingUp);
-		if (Server.postingBootInfo) { "%.%\n".postf(this, thisMethod.name) };
+		if (Server.tracing) { "%.%\n".postf(this, thisMethod.name) };
 
 		forkIfNeeded( {
-			if (Server.postingBootInfo) { "prRun: % .%\n".postf(this, "initTree") };
+			if (Server.tracing) { "prRun: % .%\n".postf(this, "initTree") };
 			this.initTree;
 			this.sync;
 			this.state_(\isReady);
@@ -186,7 +186,7 @@ Server {
 	}
 
 	newAllocators {
-		if (Server.postingBootInfo) { "%.%\n".postf(this, thisMethod.name) };
+		if (Server.tracing) { "%.%\n".postf(this, thisMethod.name) };
 
 		this.newNodeAllocators;
 		this.newBusAllocators;
@@ -289,7 +289,7 @@ Server {
 
 	prHandleClientLoginInfoFromServer { |newClientID, newMaxLogins|
 
-		if (Server.postingBootInfo) {
+		if (Server.tracing) {
 			"% % - newClientID: % newMaxLogins: %.\n"
 			.postf(this, thisMethod.name, newClientID, newMaxLogins);
 		};
@@ -323,7 +323,7 @@ Server {
 
 	prHandleNotifyFailString {|failString, msg|
 
-		if (Server.postingBootInfo) { "% .%\n".postf(this, thisMethod.name) };
+		if (Server.tracing) { "% .%\n".postf(this, thisMethod.name) };
 
 		// post info on some known error cases
 		case
@@ -484,7 +484,7 @@ Server {
 	waitForBoot { |onComplete, limit = 100, onFailure|
 		var routine = Routine (onComplete);
 
-		if (Server.postingBootInfo) { "% waitForBoot ... ".postf(this) };
+		if (Server.tracing) { "% waitForBoot ... ".postf(this) };
 
 		if (this.isReady) {
 			routine.play;
@@ -519,7 +519,7 @@ Server {
 
 
 	bootSync { |condition|
-		if (Server.postingBootInfo) { "% .%\n".postf(this, thisMethod.name) };
+		if (Server.tracing) { "% .%\n".postf(this, thisMethod.name) };
 
 		condition ?? { condition = Condition.new };
 		condition.test = false;

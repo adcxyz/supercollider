@@ -33,7 +33,7 @@ ScIDE {
 	}
 
 	*defaultServer_ {|server|
-		if (Server.postingBootInfo) {
+		if (Server.tracing) {
 			"% .% %\n".postf(this, thisMethod.name, server)
 		};
 

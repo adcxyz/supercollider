@@ -106,7 +106,7 @@ ServerProcess {
 
 	postAt { |str="", always = true|
 		var timeStr = this.timeSinceBoot.asString.keep(6);
-		if (always or: { Server.postingBootInfo }) {
+		if (always or: { Server.tracing }) {
 			"% bootAt % : %".format(server.name.cs, timeStr, str).postln
 		}
 	}
@@ -375,7 +375,7 @@ ServerProcess {
 				delay.wait;
 				loop {
 					isAlive = false;
-					if (Server.postingBootInfo) {
+					if (Server.tracing) {
 						"% ... sendStatusMsg ...\n".postf(server);
 					};
 					server.sendStatusMsg;

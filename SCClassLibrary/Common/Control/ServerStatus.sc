@@ -61,9 +61,7 @@ ServerStatusWatcher {
 
 		if(hasBooted.not) { ^this };
 
-		// if (Server.postingBootInfo) {
-			"% s %".postf(server, \sendNotify, flag);
-		// };
+		if (Server.tracing) { "% s %".postf(server, \sendNotify, flag) };
 
 		// set up oscfuncs for possible server responses, \done or \failed
 		doneOSCFunc = OSCFunc({ |msg|
@@ -191,8 +189,8 @@ ServerStatusWatcher {
 	startAliveThread { |delay=0.0| this.start(delay) }
 
 	start { | delay = 0.0 |
-		if (Server.postingBootInfo) {
-			"%.% with delay %.\n".postf(server, thisMethod.name, delay);
+		if (Server.tracing) {
+			"%.% with delay %.\n".postf(server, thisMethod.name, delay)
 		};
 		this.addStatusWatcher;
 		^aliveThread ?? {
@@ -201,9 +199,7 @@ ServerStatusWatcher {
 				delay.wait;
 				loop {
 					alive = false;
-					if (Server.postingBootInfo) {
-						"% . sendStatusMsg...\n".postf(server);
-					};
+					if (Server.tracing) { "% . sendStatusMsg...\n".postf(server) };
 					server.sendStatusMsg;
 					aliveThreadPeriod.wait;
 					this.updateRunningState(alive);
