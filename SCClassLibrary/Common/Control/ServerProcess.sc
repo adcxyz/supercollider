@@ -531,6 +531,7 @@ ServerProcess {
 
 		if(this.inProcess) {
 			server.quitInProcess;
+			this.stopWatching;
 			this.prCleanupAfterQuit
 		} {
 			"'/quit' sent\n".postln;
