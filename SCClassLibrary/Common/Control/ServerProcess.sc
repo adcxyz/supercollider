@@ -137,13 +137,30 @@ ServerProcess {
 
 		if(this.isBooting) { "% already booting".format(server).postln; ^this };
 
-		this.state = \isBooting;
-		startedBootingCondition.signal;
 		this.postAt("starting boot routine:\n", false);
 
 		bootRoutine = Routine {
 			var cond1 = Condition.new;
 			var recovered = false;
+			var maxQuitTime = 0.5;
+			var quitTime = maxQuitTime;
+
+			if (this.isQuitting) {
+				this.postAt("still quitting, wait for pid to go away", false);
+
+				while { quitTime > 0 and: { this.pidRunning } } {
+					quitTime = quitTime - 0.01;
+					0.01.wait;
+				};
+				if (quitTime <= 0) {
+					this.postAt("Wait for quit before continuing boot timed out!");
+					this.prBootFailed;
+					bootRoutine.stop;
+				}
+			};
+
+			this.state = \isBooting;
+			startedBootingCondition.signal;
 
 			this.postAt("pinging server process first ... ", false);
 
@@ -280,7 +297,7 @@ ServerProcess {
 			pid = unixCmd(
 				Server.program ++ server.options.asOptionsString(server.addr.port),
 				{
-					this.postAt(" has quit, cleaning up.");
+					this.postAt("pid has quit, cleaning up.", false);
 					this.quitWatcher(watchShutDown:false);
 				}
 			);
@@ -514,20 +531,33 @@ ServerProcess {
 
 		if(this.inProcess) {
 			server.quitInProcess;
-			"quit done\n".postln;
+			this.prCleanupAfterQuit
 		} {
 			"'/quit' sent\n".postln;
+			fork {
+				while { this.pidRunning } {
+					// "pid is running...".postln;
+					0.01.wait
+				};
+				"quit, inProcess.not - prCleanupAfterQuit.".postln;
+				this.prCleanupAfterQuit
+			};
 		};
+
+	}
+
+	prCleanupAfterQuit { |force=false|
+		if (this.isOff and: force.not) { ^this };
 
 		processRunning = hasBooted = notified = isAlive = false;
 		unresponsive = false;
 		pid = nil;
 
 		this.state_(\isOff);
-		server.statusWatcher.serverRunning_(false);
+		this.serverRunning_(false);
 		server.changed(\serverRunning);
 		hasQuitCondition.signal;
-
+		"% quit done.\n".postf(server);
 	}
 
 	quitWatcher { |onComplete, onFailure, watchShutDown = true|
@@ -535,12 +565,9 @@ ServerProcess {
 		if(watchShutDown) {
 			this.watchQuit(onComplete, onFailure)
 		} {
-			this.disableWatcher;
+			this.stopWatching;
 			onComplete.value;
 		};
-		this.stopWatching;
-		notified = false;
-		this.state_(\isOff);
 	}
 
 
@@ -588,6 +615,7 @@ ServerProcess {
 						watcher !? { watcher.enable };
 						serverReallyQuit = true;
 						serverReallyQuitWatcher.free;
+						this.prCleanupAfterQuit;
 						onComplete.value;
 					}
 				}, '/done', server.addr);
