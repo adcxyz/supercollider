@@ -189,7 +189,7 @@ ServerProcess {
 	}
 
 	// Server:remote uses this - startWatching, notified, etc
-	bootStage2 { |onComplete, timeout = 5, onFailure, recover = false, isRemote = true|
+	bootStage2 { |onComplete, timeout = 5, onFailure, recover = false, isRemote = false|
 		var remainingTimeout, cond2 = Condition.new;
 		var origAlivePeriod = this.aliveThreadPeriod;
 
@@ -197,6 +197,7 @@ ServerProcess {
 		if (isRemote == true) {
 			processRunning = hasBooted = true;
 			bootStartedTime = this.getTime;
+			this.postAt(" remote - assuming running and booted.");
 		};
 
 		this.postAt("bootStage2 begins.", false);
@@ -271,7 +272,7 @@ ServerProcess {
 		this.state = \isBooting;
 		if(this.inProcess) {
 			"%: booting internal process\n".postf(server);
-			this.bootInProcess;
+			server.options.bootInProcess;
 			pid = thisProcess.pid;
 			forkIfNeeded { onComplete.value };
 		} {
