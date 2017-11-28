@@ -12,19 +12,23 @@ Volume {
 	}
 
 	init {
-		if(server.serverRunning) { this.sendSynthDef };
+
+		updateFunc = {
+			ampSynth = nil;
+			if(persist) { this.updateSynth }
+		};
 
 		initFunc = {
-			if (Server.postingBootInfo) {
-				"%.volume.initFunc runs.\n".postf(server);
-			};
+			if (Server.tracing) { "%: volume initFunc runs.\n".postf(server) };
 			ampSynth = nil;
 			this.sendSynthDef
 		};
-		if (Server.postingBootInfo) {
-			"% - ServerBoot.adds volume initFunc.\n".postf(server);
-		};
-		ServerBoot.add(initFunc, server)
+
+		if (Server.tracing) { "% - add volume initFunc to ServerBoot.%\n".postf(server) };
+
+		ServerBoot.add(initFunc, server);
+
+		if(server.serverRunning) { this.sendSynthDef };
 	}
 
 	sendSynthDef {
@@ -40,13 +44,6 @@ Volume {
 				}).send(server);
 
 				server.sync;
-
-				updateFunc = {
-					thisMethod.postln;
-					ampSynth = nil;
-					if(persist) { this.updateSynth }
-				};
-
 				ServerTree.add(updateFunc, server);
 
 				this.updateSynth;
@@ -97,7 +94,6 @@ Volume {
 
 	freeSynth {
 		ServerTree.remove(updateFunc);
-		updateFunc = nil;
 		ampSynth.release;
 		ampSynth = nil
 	}
