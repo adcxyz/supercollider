@@ -1,39 +1,26 @@
-title:: Writing tests
+title:: Writing Tests
 summary:: Get started with writing unit tests
 categories:: Testing
 related:: Reference/SCDocSyntax, Classes/SCDoc
 
-
-To write, use and develop UnitTests, you need to 
+A detailed guide how to write unit tests is currently being written, and will be added to the standard SuperCollider shortly. This file just a quick placeholder.
 
 list::
 ## install a sourcecode version of SuperCollider
-## install the code::UnitTesting:: Quark
 ## change your environment to include only core library functionality
-## run UnitTests
+## run UnitTests, and write new ones as needed.
 ::
 
 section:: install a sourcecode version of SuperCollider
 
 Download or clone SuperCollider from github: https://github.com/supercollider/supercollider.
-It is not needed to compile SuperCollider from its sources, you can instead use a pre-compiled binary and include the relevant folders (code::SCClassLibrary, HelpSource, testsuite/classlibrary:: in your environment. See below for an example.
-
-section:: install the code::UnitTesting:: Quark
-
-The code::UnitTest:: framework is not part of the core library but provided as a quark. 
-To install it,  run
-
-code::
-Quarks.install("UnitTesting");
-::
-
-and recompile the language.
+You need not compile SuperCollider from its sources, you can just use a pre-compiled binary and include the relevant folders (code::SCClassLibrary, HelpSource, testsuite/classlibrary:: in your environment. See below for an example.
 
 section:: Change your environment to include only core library functionality
 
-In order to mimick the standard SuperCollider installation, make sure that you have only the class library installed. 
+In order to mimic the standard SuperCollider installation, make sure that you have only the class library installed, no quarks or other extensions.
 
-Best practise is to create a separate code::.yaml:: configuration file that resides parallel to the default one. You can do this either interactively from within the preferences of your IDE (code::Preferences>Interpreter::), or programatically
+Best practise is to create a separate code::.yaml:: configuration file that resides parallel to the default one. You can do this either interactively from within the preferences of your IDE (Go to code::Preferences>Interpreter::), or programatically:
 
 code::
 ~sclangConf = "SCLANG_CONF".getenv;
@@ -42,21 +29,14 @@ LanguageConfig.addIncludePath(~travisBuildDir +/+ "testsuite/classlibrary");
 +   LanguageConfig.addExcludePath(Quarks.folder +/+ "UnitTesting/tests");
 +   postf("Writing configuration to %\n", ~sclangConf);
 +   LanguageConfig.store(~sclangConf);
-:: 
-
+::
 
 section:: Organisation
 
-Core class code::UnitTest::s are located in the directory
-1.  UnitTests go into parrallel directlry
-2.  server-related tests go into `server` subdir (travis)
-3.  UnitTests should use assert and assertFloat
-4.  look at existing UnitTests to understand what are good UnitTests
-5.  UnitTest setup
-8.  run UnitTests either automatically (UnitTest.runAll), interactively (UnitTEst.gui), or individually by class (MyClass.test / TestMyClass.run << synonyms)
-
-
-section:: Writing new tests
-The simplest way is to look at an existing help file or class document, and read this document and link::Reference/SCDocSyntax::
-
+list::
+## code::"testsuite":: contains all unit tests for standard SuperCollider.
+## code::"testsuite/classlibrary":: has all tests for the core SuperCollider classes.
+## code::"testsuite/lpc":: has all tests for the sclang lexer, parser, and compiler (LPC).
+## code::"testsuite/server":: has all c++ tests for the server programs.
+::
 
