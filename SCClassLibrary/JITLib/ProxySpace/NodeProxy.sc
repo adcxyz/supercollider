@@ -318,6 +318,10 @@ NodeProxy : BusPlug {
 		this.set(*args)
 	}
 
+	mapn { | ... args | // key(s), proxy, key(s), proxy ...
+		this.set(*args)
+	}
+
 	xset { | ... args |
 		this.xFadePerform(\set, args)
 	}
