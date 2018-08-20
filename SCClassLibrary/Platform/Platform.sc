@@ -175,16 +175,25 @@ Platform {
 	// hook for clients to write frontend.css
 	writeClientCSS {}
 
+	*killProcessByID { |pid|
+		^thisProcess.platform.killProcessByID(pid)
+	}
 	killProcessByID { |pid|
 		^this.subclassResponsibility(\killProcessByID)
 	}
 
+	*killAll { |cmdLineArgs|
+		^thisProcess.platform.killAll(cmdLineArgs)
+	}
 	killAll { |cmdLineArgs|
 		^this.subclassResponsibility(\killAll)
 	}
 
 	// used to format paths correctly for command-line calls
 	// On Windows, encloses with quotes; on Unix systems, escapes spaces.
+	*formatPathForCmdLine { |path|
+		^thisProcess.platform.formatPathForCmdLine(path)
+	}
 	formatPathForCmdLine { |path|
 		^this.subclassResponsibility
 	}
