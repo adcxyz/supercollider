@@ -17,6 +17,8 @@ InstanceMethods::
 method::set
 set arguments of a node
 
+NOTE:: the methods setn, map, and mapn are no longer supported, and can be replaced with link::#-set::. ::
+
 method::unset
 remove settings
 
@@ -48,9 +50,6 @@ method::setMsg
 returns the OSC message for setting a synth
 argument:: target
 a group, synth, or server to use as a nodeID to set.
-
-method::setn, map, mapn
-These are kept for backward compatibility. They redirect to link::#-set::.
 
 method::get
 Kept for backward compatibility.
