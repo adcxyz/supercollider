@@ -1,23 +1,23 @@
 OSXPlatform : UnixPlatform {
-	var <>preferencesAction; // Warning: scapp only
-	var <>sleepAction, <>wakeAction, <>isSleeping=false;
+	classvar <>preferencesAction; // Warning: scapp only
+	classvar <>sleepAction, <>wakeAction, <>isSleeping=false;
 
-	initPlatform {
+	*initPlatform {
 		super.initPlatform;
 		recordingsDir = "~/Music/SuperCollider Recordings".standardizePath;
 		this.declareFeature(\unixPipes); // pipes are possible (can't declare in UnixPlatform since IPhonePlatform is unixy yet can't support pipes)
 	}
 
-	name { ^\osx }
+	*platformName { ^\osx }
 
-	startupFiles {
+	*startupFiles {
 		var filename = "startup.rtf";
 		var deprecated = [this.systemAppSupportDir +/+ filename, this.userAppSupportDir +/+ filename];
 		Platform.deprecatedStartupFiles(deprecated);
 		^(deprecated ++ super.startupFiles)
 	}
 
-	startup {
+	*startup {
 		Server.program = "exec %/scsynth".format((String.scDir +/+ "../Resources").shellQuote);
 
 		Score.program = Server.program;
@@ -32,20 +32,20 @@ OSXPlatform : UnixPlatform {
 			Server.local.makeWindow;
 		};
 	}
-	shutdown {
+	*shutdown {
 		if(Platform.ideName == "scapp"){
 			CocoaMenuItem.clearCustomItems;
 		};
 	}
 
-	defaultGUIScheme { ^\qt }
+	*defaultGUIScheme { ^\qt }
 
-	findHelpFile { | string |
+	*findHelpFile { | string |
 		^string.findHelpFile;
 	}
 
 	// for now just write syntax colours. Could be other things.
-	writeClientCSS {
+	*writeClientCSS {
 		var theme, file, string;
 		theme = Document.theme;
 		SCDoc.helpTargetDir.mkdir;

@@ -4,23 +4,22 @@ Platform {
 	// IDE actions
 	classvar <>makeServerWindowAction, <>makeSynthDescWindowAction, <>openHelpFileAction, <>openHTMLFileAction;
 
-	var <classLibraryDir, <helpDir, <>recordingsDir, features;
-	var <>devpath;
+	classvar <classLibraryDir, <helpDir, <>recordingsDir, features;
 
 	*initClass {
 		defaultStartupFile = this.userConfigDir +/+ "startup.scd"
 	}
 
-	initPlatform {
+	*initPlatform {
 		classLibraryDir = thisMethod.filenameSymbol.asString.dirname.dirname;
 		helpDir = thisMethod.filenameSymbol.asString.dirname.dirname.dirname ++ "/Help";
 		features = IdentityDictionary.new;
 		recordingsDir = this.userAppSupportDir +/+ "Recordings";
 	}
 
-	name { ^this.subclassResponsibility }
+	*platformName { ^thisProcess.platform.platformName }
 
-	recompile {
+	*recompile {
 		_Recompile
 		^this.primitiveFailed
 	}
@@ -28,85 +27,63 @@ Platform {
 		^thisProcess.platform.name.switch(*cases)
 	}
 
-	// directories
-	*classLibraryDir { ^thisProcess.platform.classLibraryDir }
-	*helpDir { ^thisProcess.platform.helpDir }
-
-	userHomeDir {
+	*userHomeDir {
 		_Platform_userHomeDir
 		^this.primitiveFailed
 	}
-	*userHomeDir { ^thisProcess.platform.userHomeDir }
 
-	systemAppSupportDir {
+	*systemAppSupportDir {
 		_Platform_systemAppSupportDir
 		^this.primitiveFailed
 	}
-	*systemAppSupportDir { ^thisProcess.platform.systemAppSupportDir }
 
-	userAppSupportDir {
+	*userAppSupportDir {
 		_Platform_userAppSupportDir
 		^this.primitiveFailed
 	}
-	*userAppSupportDir { ^thisProcess.platform.userAppSupportDir }
 
-	systemExtensionDir {
+	*systemExtensionDir {
 		_Platform_systemExtensionDir
 		^this.primitiveFailed
 	}
-	*systemExtensionDir { ^thisProcess.platform.systemExtensionDir }
 
-	userExtensionDir {
+	*userExtensionDir {
 		_Platform_userExtensionDir
 		^this.primitiveFailed
 	}
-	*userExtensionDir { ^thisProcess.platform.userExtensionDir }
 
-	userConfigDir {
+	*userConfigDir {
 		_Platform_userConfigDir
 		^this.primitiveFailed
 	}
-	*userConfigDir { ^thisProcess.platform.userConfigDir }
 
-	resourceDir {
+	*resourceDir {
 		_Platform_resourceDir
 		^this.primitiveFailed
 	}
-	*resourceDir { ^thisProcess.platform.resourceDir }
 
-	*recordingsDir { ^thisProcess.platform.recordingsDir }
-
-	defaultTempDir { ^this.subclassResponsibility() }
 	*defaultTempDir { ^thisProcess.platform.defaultTempDir }
 
 	// The "ideName" is for ide-dependent compilation.
 	// From SC.app, the value is "scapp" meaning "scide_scapp" folders will be compiled and other "scide_*" ignored.
-	ideName {
+	*ideName {
 		_Platform_ideName
 		^this.primitiveFailed
 	}
-	*ideName { ^thisProcess.platform.ideName }
 
-	platformDir { ^this.name.asString }
-	*platformDir { ^thisProcess.platform.platformDir }
+	*platformDir { ^this.platformName.asString }
 
-	pathSeparator { ^this.subclassResponsibility }
 	*pathSeparator { ^thisProcess.platform.pathSeparator }
-
-	pathDelimiter{ ^this.subclassResponsibility }
 	*pathDelimiter { ^thisProcess.platform.pathDelimiter }
-
-	isPathSeparator { |char| ^this.subclassResponsibility }
 	*isPathSeparator { |char| ^thisProcess.platform.isPathSeparator(char) }
 
-	clearMetadata { |path| ^this.subclassResponsibility }
 	*clearMetadata { |path| ^thisProcess.platform.clearMetadata(path) }
 
 	// startup/shutdown hooks
-	startup { }
-	shutdown { }
+	*startup { }
+	*shutdown { }
 
-	startupFiles {
+	*startupFiles {
 		^[defaultStartupFile];
 	}
 
@@ -123,14 +100,14 @@ Platform {
 		}
 	}
 
-	loadStartupFiles { this.startupFiles.do{|afile|
+	*loadStartupFiles { this.startupFiles.do{|afile|
 		afile = afile.standardizePath;
 		if(File.exists(afile), {afile.load})
 		}
 	}
 
 	// features
-	declareFeature { | aFeature |
+	*declareFeature { | aFeature |
 		var str = aFeature.asString;
 		if (str.first.isUpper) {
 			Error("cannot declare class name features").throw;
@@ -140,7 +117,7 @@ Platform {
 		};
 		features.put(aFeature, true);
 	}
-	hasFeature { | symbol |
+	*hasFeature { | symbol |
 		if (features.includesKey(symbol).not) {
 			features.put(
 				symbol,
@@ -149,61 +126,50 @@ Platform {
 		};
 		^features.at(symbol)
 	}
-	when { | features, ifFunction, elseFunction |
+
+	*when { | features, ifFunction, elseFunction |
 		^features.asArray.inject(true, { |v,x|
 			v and: { this.hasFeature(x) }
 		}).if(ifFunction, elseFunction)
 	}
-	*when {  | features, ifFunction, elseFunction |
-		^thisProcess.platform.when(features, ifFunction, elseFunction)
-	}
 
 	// Prefer qt but fall back to swing if qt not installed.
-	defaultGUIScheme { if (GUI.get(\qt).notNil) {^\qt} {^\swing} }
+	*defaultGUIScheme { if (GUI.get(\qt).notNil) {^\qt} {^\swing} }
 
-	isSleeping { ^false } // unless defined otherwise
-
-	// used on systems to deduce a svn directory path, if system wide location is used for installed version. (tested on Linux).
-	devLoc{ |inpath|
-		var outpath;
-		if ( devpath.isNil ){ ^inpath };
-		outpath = inpath.copyToEnd( inpath.find( "SuperCollider") );
-		outpath = outpath.replace( "SuperCollider", devpath );
-		^outpath;
-	}
+	*isSleeping { ^false } // unless defined otherwise
 
 	// hook for clients to write frontend.css
-	writeClientCSS {}
+	*writeClientCSS {}
 
-	killProcessByID { |pid|
-		^this.subclassResponsibility(\killProcessByID)
+	*killProcessByID { |pid|
+		^thisProcess.platform.killProcessByID(pid)
 	}
 
-	killAll { |cmdLineArgs|
-		^this.subclassResponsibility(\killAll)
+	*killAll { |cmdLineArgs|
+		^thisProcess.platform.killAll(cmdLineArgs)
 	}
 
 	// used to format paths correctly for command-line calls
 	// On Windows, encloses with quotes; on Unix systems, escapes spaces.
-	formatPathForCmdLine { |path|
-		^this.subclassResponsibility
+	*formatPathForCmdLine { |path|
+		^thisProcess.platform.formatPathForCmdLine(path)
 	}
 
 }
 
 UnixPlatform : Platform {
-	pathSeparator { ^$/ }
-    pathDelimiter { ^$: }
+	*pathSeparator { ^$/ }
+    *pathDelimiter { ^$: }
 
-	isPathSeparator { |char|
+	*isPathSeparator { |char|
 		^(char === this.pathSeparator)
 	}
 
-	clearMetadata { |path|
+	*clearMetadata { |path|
 		"rm -f %\.*meta".format(path.splitext[0].escapeChar($ )).systemCmd;
 	}
 
-	arch {
+	*arch {
 		var pipe, arch;
 		pipe = Pipe("arch", "r");
 		arch = pipe.getLine;
@@ -211,22 +177,22 @@ UnixPlatform : Platform {
 		^arch.asSymbol;
 	}
 
-	killProcessByID { |pid|
+	*killProcessByID { |pid|
 		("kill -9 " ++ pid).unixCmd;
 	}
 
-	killAll { |cmdLineArgs|
+	*killAll { |cmdLineArgs|
 		("killall -9 " ++ cmdLineArgs).unixCmd;
 	}
 
-	defaultTempDir {
+	*defaultTempDir {
 		// +/+ "" looks funny but ensures trailing slash
 		^["/tmp/", this.userAppSupportDir +/+ ""].detect({ |path|
 			File.exists(path);
 		});
 	}
 
-	formatPathForCmdLine { |path|
+	*formatPathForCmdLine { |path|
 		^path.escapeChar($ );
 	}
 
