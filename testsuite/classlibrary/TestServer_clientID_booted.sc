@@ -158,7 +158,7 @@ TestServer_clientID_booted : UnitTest {
 		);
 
 		remote1.remove;
-		thisProcess.platform.killProcessByID(serverPid);
+		Platform.killProcessByID(serverPid);
 	}
 
 	test_repeatedRemoteLogin {
@@ -214,6 +214,6 @@ TestServer_clientID_booted : UnitTest {
 		// cleanup
 		remote1.remove;
 		remote2.remove;
-		thisProcess.platform.killProcessByID(serverPid);
+		Platform.killProcessByID(serverPid);
 	}
 }

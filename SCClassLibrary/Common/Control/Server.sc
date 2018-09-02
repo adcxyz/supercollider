@@ -142,7 +142,7 @@ ServerOptions {
 				ugenPluginsPath = ugenPluginsPath.bubble;
 			});
 			o = o ++ " -U " ++ ugenPluginsPath.collect{|p|
-				thisProcess.platform.formatPathForCmdLine(p)
+				Platform.formatPathForCmdLine(p)
 			}.join(Platform.pathDelimiter);
 		});
 		if (memoryLocking, {
@@ -1063,7 +1063,7 @@ Server {
 		// you can't cause them to quit via OSC (the boot button)
 
 		// this brutally kills them all off
-		thisProcess.platform.killAll(this.program.basename);
+		Platform.killAll(this.program.basename);
 		this.quitAll(watchShutDown: false);
 	}
 

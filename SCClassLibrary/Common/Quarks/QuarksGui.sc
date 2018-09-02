@@ -107,7 +107,7 @@ QuarksGui {
 				["Recompile class library", colors.primary.text, colors.primary.bg]
 			])
 			.toolTip_("You will need to recompile the class library after making any changes")
-			.action_({ thisProcess.platform.recompile })
+			.action_({ Platform.recompile })
 			.enabled_(false);
 
 		lblMsg = StaticText()

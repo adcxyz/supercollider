@@ -656,7 +656,7 @@ SynthDescLib {
 // to disable metadata read/write
 AbstractMDPlugin {
 	*clearMetadata { |path|
-		^thisProcess.platform.clearMetadata(path)
+		^Platform.clearMetadata(path)
 	}
 
 	*writeMetadata { |metadata, synthdef, path|
