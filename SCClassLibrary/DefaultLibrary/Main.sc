@@ -11,7 +11,7 @@ Main : Process {
 		// setup the platform first so that class initializers can call platform methods.
 		// create the platform, then intialize it so that initPlatform can call methods
 		// that depend on thisProcess.platform methods.
-		platform = this.platformClass.new;
+		platform = this.platformClass;
 		platform.initPlatform;
 
 		super.startup;
