@@ -3,12 +3,12 @@ TestString : UnitTest {
 	// ------- path-like operations ---------------------------------------------
 
 	test_withTrailingSlash_onEmptyString_addsSeparator {
-		var expected = thisProcess.platform.pathSeparator.asString;
+		var expected = Platform.pathSeparator.asString;
 		this.assertEquals("".withTrailingSlash, expected);
 	}
 
 	test_withTrailingSlash_onPathSeparator_isNoop {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		this.assertEquals(sep.withTrailingSlash, sep);
 	}
 
@@ -22,7 +22,7 @@ TestString : UnitTest {
 	}
 
 	test_withoutTrailingSlash_onSeparator_removesSep {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		this.assertEquals(sep.withoutTrailingSlash, "");
 	}
 
@@ -33,31 +33,31 @@ TestString : UnitTest {
 
 	// operator +/+
 	test_appendPathSep_emptyWithEmpty_producesSep {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		this.assertEquals("" +/+ "", sep);
 	}
 
 	test_appendPathSep_nonSepWithNonSep_producesSep {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		this.assertEquals("abc" +/+ "def", "abc" ++ sep ++ "def");
 	}
 
 	test_appendPathSep_sepWithNonSep_onlyOneSep {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		var result = ("abc" ++ sep) +/+ ("def");
 		var expected = "abc" ++ sep ++ "def";
 		this.assertEquals(result, expected);
 	}
 
 	test_appendPathSep_nonSepWithSep_onlyOneSep {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		var result = ("abc") +/+ (sep ++ "def");
 		var expected = "abc" ++ sep ++ "def";
 		this.assertEquals(result, expected);
 	}
 
 	test_appendPathSep_sepWithSep_onlyOneSep {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		var result = ("abc" ++ sep) +/+ (sep ++ "def");
 		var expected = "abc" ++ sep ++ "def";
 		this.assertEquals(result, expected);
@@ -72,13 +72,13 @@ TestString : UnitTest {
 
 	test_appendPathSep_slashWithBackslash_onlyOneSep {
 		var result = "abc/" +/+ "\\def";
-		var expected = thisProcess.platform.isPathSeparator($\\).if { "abc/def" } { "abc/\\def" };
+		var expected = Platform.isPathSeparator($\\).if { "abc/def" } { "abc/\\def" };
 		this.assertEquals(result, expected);
 	}
 
 	test_appendPathSep_backslashWithBackslash {
 		var result = "abc\\" +/+ "\\def";
-		var expected = thisProcess.platform.isPathSeparator($\\).if { "abc\\def" } { "abc\\/\\def" };
+		var expected = Platform.isPathSeparator($\\).if { "abc\\def" } { "abc\\/\\def" };
 		this.assertEquals(result, expected);
 	}
 
@@ -90,7 +90,7 @@ TestString : UnitTest {
 
 	// should work with symbols too for backward compatibility
 	test_appendPathSep_stringWithSymbol_producesString {
-		var sep = thisProcess.platform.pathSeparator.asString;
+		var sep = Platform.pathSeparator.asString;
 		this.assertEquals("dir" +/+ 'file', "dir%file".format(sep));
 	}
 

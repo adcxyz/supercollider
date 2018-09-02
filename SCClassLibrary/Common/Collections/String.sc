@@ -357,7 +357,7 @@ String[char] : RawArray {
 
 	withTrailingSlash {
 		^if(this.isEmpty or: { this.last.isPathSeparator.not }) {
-			this ++ thisProcess.platform.pathSeparator
+			this ++ Platform.pathSeparator
 		} {
 			this
 		}
@@ -373,7 +373,7 @@ String[char] : RawArray {
 
 	absolutePath {
 		var first, sep;
-		sep = thisProcess.platform.pathSeparator;
+		sep = Platform.pathSeparator;
 		first = this[0];
 		if(first == sep){^this};
 		if(first == $~){^this.standardizePath};
@@ -397,7 +397,7 @@ String[char] : RawArray {
 		var path = thisProcess.nowExecutingPath;
 		if(path.isNil) { Error("can't load relative to an unsaved file").throw};
 		if(path.basename == this) { Error("should not load a file from itself").throw };
-		^(path.dirname ++ thisProcess.platform.pathSeparator ++ this).loadPaths(warn, action)
+		^(path.dirname ++ Platform.pathSeparator ++ this).loadPaths(warn, action)
 	}
 	resolveRelative {
 		var path, caller;
@@ -407,9 +407,9 @@ String[char] : RawArray {
 		}, {
 			path = thisProcess.nowExecutingPath;
 		});
-		if(this[0] == thisProcess.platform.pathSeparator, {^this});
+		if(this[0] == Platform.pathSeparator, {^this});
 		if(path.isNil) { Error("can't resolve relative to an unsaved file").throw};
-		^(path.dirname ++ thisProcess.platform.pathSeparator ++ this)
+		^(path.dirname ++ Platform.pathSeparator ++ this)
 	}
 	include {
 		if(Quarks.isInstalled(this).not) {
@@ -443,7 +443,7 @@ String[char] : RawArray {
 
 	// path concatenate
 	+/+ { arg path;
-		var sep = thisProcess.platform.pathSeparator;
+		var sep = Platform.pathSeparator;
 		var hasLeftSep, hasRightSep;
 
 		if (path.respondsTo(\fullPath)) {

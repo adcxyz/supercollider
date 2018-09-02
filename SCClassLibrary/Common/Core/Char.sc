@@ -93,7 +93,7 @@ Char : Magnitude {
 		^this.ascii != 47 and: {this.ascii != 58} and: {this.ascii != 34}
 	}
 	isPathSeparator {
-		^thisProcess.platform.isPathSeparator(this)
+		^Platform.isPathSeparator(this)
 	}
 	< { arg aChar;
 		^this.ascii < aChar.ascii

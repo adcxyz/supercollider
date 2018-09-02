@@ -12,7 +12,7 @@ Git {
 		this.git([
 			"clone",
 			url,
-			thisProcess.platform.formatPathForCmdLine(localPath)
+			Platform.formatPathForCmdLine(localPath)
 		], false);
 		this.url = url;
 	}

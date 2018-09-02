@@ -81,7 +81,7 @@ PathName {
 		var r, a, b, i, mePath;
 		mePath = this.fullPath.absolutePath;
 		relativeTo = (relativeTo ? scroot ).absolutePath;
-		r = thisProcess.platform.pathSeparator;
+		r = Platform.pathSeparator;
 
 		a = mePath.split(r);
 		b = relativeTo.split(r);

@@ -22,7 +22,7 @@ SynthDef {
 
 	*synthDefDir_ { arg dir;
 		if (dir.last.isPathSeparator.not )
-			{ dir = dir ++ thisProcess.platform.pathSeparator };
+			{ dir = dir ++ Platform.pathSeparator };
 		synthDefDir = dir;
 	}
 
