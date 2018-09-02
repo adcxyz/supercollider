@@ -420,7 +420,7 @@ History { 		// adc 2006, Birmingham; rewrite 2007.
 
 	// log file support - global only
 	*makeLogFolder {
-		var supportDir = thisProcess.platform.userAppSupportDir;
+		var supportDir = Platform.userAppSupportDir;
 		var specialFolder = supportDir ++ "/HistoryLogs";
 
 		if (pathMatch(supportDir).isEmpty) { logFolder = ""; ^this };

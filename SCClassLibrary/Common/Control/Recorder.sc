@@ -171,7 +171,7 @@ Recorder {
 
 	makePath {
 		var timestamp;
-		var dir = thisProcess.platform.recordingsDir;
+		var dir = Platform.recordingsDir;
 		timestamp = Date.localtime.stamp;
 		^dir +/+ filePrefix ++ timestamp ++ "." ++ server.recHeaderFormat;
 	}

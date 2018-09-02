@@ -334,7 +334,7 @@ Buffer {
 	write { arg path, headerFormat = "aiff", sampleFormat = "int24", numFrames = -1,
 						startFrame = 0, leaveOpen = false, completionMessage;
 		if(bufnum.isNil) { Error("Cannot call % on a % that has been freed".format(thisMethod.name, this.class.name)).throw };
-		path = path ?? { thisProcess.platform.recordingsDir +/+ "SC_" ++ Date.localtime.stamp ++ "." ++ headerFormat };
+		path = path ?? { Platform.recordingsDir +/+ "SC_" ++ Date.localtime.stamp ++ "." ++ headerFormat };
 		server.listSendMsg(
 			[\b_write, bufnum, path,
 				headerFormat, sampleFormat, numFrames, startFrame,

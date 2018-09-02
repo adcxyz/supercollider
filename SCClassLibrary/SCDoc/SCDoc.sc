@@ -689,8 +689,8 @@ SCDoc {
 	}
 
 	*initClass {
-		this.helpSourceDir_(thisProcess.platform.classLibraryDir.dirname +/+ "HelpSource");
-		this.helpTargetDir_(thisProcess.platform.userAppSupportDir +/+ "Help");
+		this.helpSourceDir_(Platform.classLibraryDir.dirname +/+ "HelpSource");
+		this.helpTargetDir_(Platform.userAppSupportDir +/+ "Help");
 		renderer = SCDocHTMLRenderer;
 	}
 
