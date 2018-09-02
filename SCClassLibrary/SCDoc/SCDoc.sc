@@ -549,7 +549,7 @@ SCDoc {
 					};
 				}
 			};
-			rootPaths = [thisProcess.platform.userExtensionDir, thisProcess.platform.systemExtensionDir];
+			rootPaths = [Platform.userExtensionDir, Platform.systemExtensionDir];
 			rootPaths = rootPaths.addAll(LanguageConfig.includePaths);
 			rootPaths.do {|dir|
 				find.(PathName(dir));
