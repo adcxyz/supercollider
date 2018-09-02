@@ -621,9 +621,10 @@ SCDoc {
 		if(url.scheme != "file") {^url};
 
 		targetBasePath = SCDoc.helpTargetDir;
-		if (thisProcess.platform.name === \windows)
-		{ targetBasePath = targetBasePath.replace("/","\\") };
-		pathIsCaseInsensitive = thisProcess.platform.name === \windows;
+		Platform.case(\windows, {
+			targetBasePath = targetBasePath.replace("/","\\")
+		});
+		pathIsCaseInsensitive = (Platform.platformName === \windows);
 
 		// detect old helpfiles and wrap them in OldHelpWrapper
 		if(
@@ -945,18 +946,18 @@ URI {
 		uri.scheme = "file";
 		uri.authority = "";
 		uri.path = string;
-		if (thisProcess.platform.name === \windows) {
+		Platform.case(\windows, {
 			uri.path = uri.path.replace("\\","/");
 			if (uri.path.size >= 2 and: {uri.path[1] == $:})
 			{ uri.path = "/" ++ uri.path; }
-		}
-		^ uri;
+		});
+		^uri;
 	}
 
 	*tolerant { |string|
 		var uri;
 
-		if (thisProcess.platform.name === \windows
+		if (Platform.platformName === \windows
 			and: { string.size >= 2 and: { string[1] == $:} } )
 		{
 			^ this.fromLocalPath(string);
@@ -986,13 +987,13 @@ URI {
 	asLocalPath {
 		var localPath;
 		if (scheme != "file") { ^nil };
-		if (thisProcess.platform.name === \windows) {
+		Platform.case(\windows, {
 			localPath = path;
 			if (localPath.beginsWith("/")) { localPath = localPath.drop(1) };
 			localPath = localPath.replace("/","\\");
 			^localPath;
-		}
-		^ path.copy;
+		});
+		^path.copy;
 	}
 
 	asString {

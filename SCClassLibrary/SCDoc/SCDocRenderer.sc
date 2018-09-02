@@ -212,7 +212,7 @@ SCDocHTMLRenderer {
 
 		thisIsTheMainHelpFile = (doc.title == "Help") and: {
 			(folder == "") or:
-			{ (thisProcess.platform.name === \windows) and: { folder == "Help" } }
+			{ (Platform.platformName === \windows) and: { folder == "Help" } }
 		};
 
 		stream

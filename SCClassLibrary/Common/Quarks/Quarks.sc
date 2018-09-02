@@ -244,16 +244,16 @@ Quarks {
 			folder.mkdir();
 		});
 		this.clearCache;
-		if(thisProcess.platform.name !== 'windows', {
-			regex = (
-				isPath: "^[~\\.]?/",
-				isAbsolutePath: "^/"
-			);
-		}, {
+		Platform.case('windows', {
 			regex = (
 				isPath: "\\\\|/",
 				isAbsolutePath: "^[A-Za-z]:(?:\\\\|/)",
 				isURL: "://"
+			);
+		}, {
+			regex = (
+				isPath: "^[~\\.]?/",
+				isAbsolutePath: "^/"
 			);
 		});
 	}
@@ -390,10 +390,10 @@ Quarks {
 		});
 	}
 	*isPath { |string|
-		if(thisProcess.platform.name !== 'windows', {
-			^string.findRegexp(regex.isPath).size != 0
-		}, {
+		Platform.case('windows', {
 			^(string.findRegexp(regex.isPath).size != 0).and(string.findRegexp(regex.isURL).size == 0)
+		}, {
+			^string.findRegexp(regex.isPath).size != 0
 		});
 	}
 	*asAbsolutePath { |path, relativeTo|

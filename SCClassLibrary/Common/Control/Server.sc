@@ -118,7 +118,7 @@ ServerOptions {
 		if (outputStreamsEnabled.notNil, {
 			o = o ++ " -O " ++ outputStreamsEnabled ;
 		});
-		if ((thisProcess.platform.name!=\osx) or: {inDevice == outDevice})
+		if ( Platform.platformName != \osx or: { inDevice == outDevice })
 		{
 			if (inDevice.notNil,
 				{

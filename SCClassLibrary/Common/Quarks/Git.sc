@@ -95,10 +95,10 @@ Git {
 		// all tags
 		// only includes ones that have been fetched from remote
 		^tags ?? {
-			if(thisProcess.platform.name !== 'windows', {
-				raw = this.git(["for-each-ref --format='%(refname)' --sort=taggerdate refs/tags"]);
-			}, {
+			Platform.case('windows', {
 				raw = this.git(["for-each-ref --format=%(refname) --sort=taggerdate refs/tags"]);
+			}, {
+				raw = this.git(["for-each-ref --format='%(refname)' --sort=taggerdate refs/tags"]);
 			});
 			tags = raw.split(Char.nl)
 				.select({ |t| t.size != 0 })
@@ -114,7 +114,7 @@ Git {
 		var cmd, result="";
 
 		if(cd, {
-			cmd = ["cd", thisProcess.platform.formatPathForCmdLine(localPath), "&&", "git"];
+			cmd = ["cd", Platform.formatPathForCmdLine(localPath), "&&", "git"];
 		},{
 			cmd = ["git"];
 		});
@@ -130,11 +130,11 @@ Git {
 	*checkForGit {
 		var gitFind;
 		if(gitIsInstalled.isNil) {
-			if(thisProcess.platform.name !== 'windows') {
-				gitFind = "which git";
-			} {
+			Platform.case('windows', {
 				gitFind = "where git";
-			};
+			}, {
+				gitFind = "which git";
+			});
 			Pipe.callSync(gitFind, {
 				gitIsInstalled = true;
 			}, { arg error;

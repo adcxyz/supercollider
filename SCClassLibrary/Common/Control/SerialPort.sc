@@ -21,7 +21,7 @@ SerialPort {
 			^devicePattern.pathMatch;
 		};
 
-		if(thisProcess.platform.name == \windows) {
+		Platform.case(\windows, {
 			// There are somewhere around a dozen ways you can get a list of serial port devices
 			// on Windows. We here duplicate the method used in JSSC (Java Simple Serial Connector),
 			// which is in turn used in the Arduino IDE. If it's good enough for Arduino, it's good
@@ -48,10 +48,10 @@ SerialPort {
 				};
 			};
 			^devices;
-		} {
+		}, {
 			// These regexps are also taken from the Arduino IDE:
 			// https://github.com/arduino/Arduino/blob/ec2e9a642a085b32701cf81297ee7c1570177195/arduino-core/src/processing/app/SerialPortList.java#L48
-			regexp = thisProcess.platform.name.switch(
+			regexp = Platform.case(
 				\linux,   "^(ttyS|ttyUSB|ttyACM|ttyAMA|rfcomm|ttyO)[0-9]{1,3}",
 				\osx,     "^(tty|cu)\\..*"
 			);
@@ -62,7 +62,7 @@ SerialPort {
 				};
 			};
 			^devices;
-		};
+		});
 	}
 	*listDevices {
 		this.devices.do(_.postln);

@@ -32,10 +32,10 @@ TestSerialPort : UnitTest {
 			^skipSerialTests;
 		};
 		skipSerialTests = false;
-		if(thisProcess.platform.name == \windows) {
+		Platform.case(\windows, {
 			"Skipping SerialPort tests because platform is Windows.".warn;
 			skipSerialTests = true;
-		};
+		});
 		if("which socat".systemCmd != 0) {
 			"Skipping SerialPort tests because socat is not installed.".warn;
 			skipSerialTests = true;
