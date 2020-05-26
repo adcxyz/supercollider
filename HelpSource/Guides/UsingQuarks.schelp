@@ -108,6 +108,12 @@ If you are using the SC IDE then open strong::Preferences > Interpreter:: and re
 You can also manually edit teletype::sclang_config.yaml::
 
 
+subsection:: Fixing Platform, Editor, GUI Conflicts
+
+Some quarks use platform-, editor- or GUI-specific resources, which need to be in appropriately named folders so sclang can include or exclude them automatically, see
+the section on Feature-specific Folders. For example, a class in a quark may use classes like code::Window, UserView:: etc. to create custom GUIs, but your system does not have Qt installed (which SC uses for GUIs).
+
+If this happens, you can fix this locally on your system by moving the files in such appropriately named folders. Please use this as an opportunity to help improving the SC ecosystem by asking the author(s) of the quark to update it accordingly, best by filing an issue on github, or just asking on the mailing list.
 
 section:: Saving and Loading sets of Quarks
 
@@ -118,7 +124,7 @@ This is very useful for projects because you can pin the exact releases of each 
 
 code::
 // save your current state
-Quarks.save("~/supercollider/quarks.txt");
+Quarks.save("~/Desktop/quarks.txt");
 // reload it later
 Quarks.load("~/supercollider/quarks.txt");
 ::
@@ -174,6 +180,29 @@ git init
 Bitbucket offers free hosting for private repositories, and you can setup your own git host on any machine that you have SSH access to.  But you don't even need an externally hosted repository to use git.
 
 Hard drives die, backups fail, people make mistakes. If you keep a copy on bitbucket then your work is that much safer.
+
+
+section:: Making Quarks Cross-platform
+If your Quark uses platform-specific resources in Classes, you can still keep it fully compatible with the variety of platforms and editors SC runs on:
+
+subsection:: Platform/Editor-specific Folders
+Folders with the following names will only be compiled on these specific operating systems:
+list::
+## teletype::osx:: - macOS
+## teletype::linux:: - Linux
+## teletype::windows:: - Windows
+::
+
+subsection:: Editor-specific Folders
+Folders with the following names will only be compiled when the correesponding editors are present:
+scide_* : SCIDE editor must be present
+sc-el ??  emacs editor - which folder name?
+sced ??   sced ??
+scvim ??  vim editor
+
+subsection:: GUI vs non-GUI
+Note:: the separate GUI folder exclusion is not implemented yet! ::
+teletype::GUI:: these folders will only be compiled if Qt GUI system for SC is present; this lets embedded systems with no GUI system ignore these folders without extra maintenance needed.
 
 section:: Publishing a Quark
 
